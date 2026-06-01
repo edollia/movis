@@ -1,15 +1,18 @@
 """
-ola k ase — vidsrc.me full API implementation
+ola k ase — PlayIMDb link implementation
 """
 
-from flask import Flask, request, render_template_string, redirect, Response
+from flask import Flask, request, redirect
 import json, requests, os
 from urllib.parse import quote
 
 app = Flask(__name__)
 
-VIDSRC_EMBED = "https://vidsrc.me"
-VIDSRC_API   = "https://vidsrc.me"
+PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
+
+
+def imdb_play_url(imdb_id):
+    return f"{PLAY_IMDB_TITLE_BASE}/{imdb_id}/"
 
 try:    cache = json.load(open("cache.json"))
 except: cache = {}
@@ -228,12 +231,7 @@ def render_grid_page(title_html, results, q=""):
         for m in results:
             is_tv  = m.get("is_tv", False)
             s, ep  = m.get("season"), m.get("episode")
-            if is_tv and s and ep:
-                dest = f"/watch-tv/{m['id']}/{s}/{ep}?title={quote(str(m['title']))}&year={m.get('year','')}"
-            elif is_tv:
-                dest = f"/tv/{m['id']}?title={quote(str(m['title']))}&year={m.get('year','')}"
-            else:
-                dest = f"/play/{m['id']}?title={quote(str(m['title']))}&year={m.get('year','')}"
+            dest = imdb_play_url(m["id"])
 
             badge   = f'<div class="bdg{" tv" if is_tv else ""}">{"TV" if is_tv else "film"}</div>'
             img_tag = (f'<img src="{m["poster"]}" alt="" loading="lazy" '
@@ -344,210 +342,6 @@ HOME = f"""<!DOCTYPE html>
 </html>"""
 
 
-TV_TMPL = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>{{{{ title }}}} — ola k ase</title>
-  {INNER_CSS}
-  {GOAT}
-  <style>
-    .tv-wrap{{max-width:520px;margin:0 auto;padding:1.1rem .75rem 3rem}}
-    .tv-title{{
-      font-family:'VT323',monospace;
-      font-size:clamp(1.8rem,7vw,2.8rem);
-      color:#00ff41;text-shadow:0 0 10px #00ff41;
-      letter-spacing:.05em;line-height:1.1;margin-bottom:.2em;
-    }}
-    .tv-meta{{font-size:.7rem;color:#1a4a1a;margin-bottom:1.3rem;letter-spacing:.06em}}
-    label{{display:block;font-size:.7rem;color:#00882a;
-           letter-spacing:.1em;margin-bottom:.28em;margin-top:.6rem}}
-    select{{
-      display:block;width:100%;max-width:240px;
-      background:#020802;color:#00ff41;
-      border:1px solid #0a280a;border-radius:2px;
-      font-family:'Share Tech Mono',monospace;font-size:.82rem;
-      padding:.42em .6em;outline:none;cursor:pointer;
-      appearance:none;-webkit-appearance:none;
-    }}
-    select:focus{{border-color:#00ff41}}
-    .watch-btn{{
-      display:inline-block;margin-top:.9rem;
-      background:rgba(0,255,65,.07);color:#00ff41;
-      border:1px solid #00ff41;border-radius:3px;
-      font-family:'VT323',monospace;font-size:1.4rem;
-      letter-spacing:.1em;text-align:center;
-      padding:.4em 1.4em;text-decoration:none;
-      transition:background .2s,box-shadow .2s;
-      box-shadow:0 0 14px rgba(0,255,65,.18);
-    }}
-    .watch-btn:hover{{background:rgba(0,255,65,.2);box-shadow:0 0 30px rgba(0,255,65,.4)}}
-  </style>
-</head>
-<body>
-  {SCANLINES}
-  {header()}
-  <div class="tv-wrap">
-    <div class="tv-title">{{{{ title }}}}</div>
-    <div class="tv-meta">{{{{ imdb_id }}}}{{{{ " · " + year if year else "" }}}} · tv series</div>
-
-    <label>season</label>
-    <select id="ss">
-      {{% for s in range(1,51) %}}
-      <option value="{{{{ s }}}}">season {{{{ s }}}}</option>
-      {{% endfor %}}
-    </select>
-
-    <label>episode</label>
-    <select id="se">
-      {{% for e in range(1,51) %}}
-      <option value="{{{{ e }}}}">episode {{{{ e }}}}</option>
-      {{% endfor %}}
-    </select>
-
-    <a class="watch-btn" id="wbtn"
-       href="/watch-tv/{{{{ imdb_id }}}}/1/1?title={{{{ title|urlencode }}}}&year={{{{ year }}}}">
-      ▶ watch
-    </a>
-  </div>
-  <script>
-  (function(){{
-    var ss=document.getElementById('ss');
-    var se=document.getElementById('se');
-    var wb=document.getElementById('wbtn');
-    var id='{{{{ imdb_id }}}}', t='{{{{ title|e }}}}', y='{{{{ year }}}}';
-    function upd(){{
-      wb.href='/watch-tv/'+id+'/'+ss.value+'/'+se.value+
-              '?title='+encodeURIComponent(t)+'&year='+y;
-    }}
-    ss.addEventListener('change',upd);
-    se.addEventListener('change',upd);
-  }})();
-  </script>
-</body>
-</html>"""
-
-
-# ── PLAYER — scanlines intentionally REMOVED here only ───────────────────────
-# The #sl div with repeating-linear-gradient is what caused the horizontal
-# lines overlaying the iframe video. Removed entirely from this template.
-# All other pages keep scanlines as part of the matrix aesthetic.
-#
-# QUALITY NOTE: vidsrc.me serves video inside a cross-origin iframe.
-# Cross-origin iframes cannot be controlled by our JS (browser security).
-# What we CAN do:
-#   1. Remove our own overlays (scanlines) — DONE
-#   2. Set iframe to fullscreen with no letterboxing — DONE
-#   3. Pass ?autoplay=1 in the embed URL — DONE
-# What we CANNOT do from outside the iframe:
-#   - Force internal player quality selection (controlled inside vidsrc's own JS)
-#   - Override their ABR (adaptive bitrate) algorithm
-# Best real-world approach: vidsrc will serve the highest quality your
-# bandwidth supports. If you want to lock quality, use their player's
-# built-in settings menu inside the iframe.
-
-PLAYER_TMPL = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>{{{{ title }}}} — ola k ase</title>
-  {FONTS}
-  {GOAT}
-  <style>
-    *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-    html,body{{
-      width:100%;height:100%;
-      background:#000;
-      overflow:hidden;
-      font-family:'Share Tech Mono',monospace;
-    }}
-
-    /* ── Fullscreen iframe container — no padding, no margins ── */
-    #pl{{
-      position:fixed;
-      /* sits below the topbar (40px) when bar is visible,
-         but topbar auto-hides so iframe effectively fills 100% */
-      inset:0;
-    }}
-    iframe{{
-      width:100%;
-      height:100%;
-      border:none;
-      display:block;
-      background:#000;
-      /* no filter, no overlay — clean video output */
-    }}
-
-    /* ── Auto-hiding topbar ── */
-    #tb{{
-      position:fixed;top:0;left:0;right:0;height:40px;
-      background:rgba(0,0,0,.85);
-      backdrop-filter:blur(12px);
-      -webkit-backdrop-filter:blur(12px);
-      border-bottom:1px solid rgba(0,255,65,.1);
-      display:flex;align-items:center;gap:.6rem;padding:0 .75rem;
-      z-index:1000;
-      transition:opacity .4s,transform .4s;
-    }}
-    #tb.h{{opacity:0;transform:translateY(-100%);pointer-events:none}}
-    .tl{{
-      font-family:'VT323',monospace;font-size:1.35rem;
-      color:#00ff41;text-decoration:none;letter-spacing:.05em;
-      text-shadow:0 0 8px #00ff41;white-space:nowrap;flex-shrink:0;
-    }}
-    .tt{{
-      font-size:.68rem;color:#1e5a1e;flex:1;
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    }}
-    .bk{{
-      color:#008a18;text-decoration:none;font-size:.66rem;
-      border:1px solid #082008;padding:.2em .6em;border-radius:2px;
-      transition:all .15s;white-space:nowrap;flex-shrink:0;
-    }}
-    .bk:hover{{background:#001200;border-color:#00ff41;color:#00ff41}}
-  </style>
-</head>
-<body>
-  <!-- NO scanlines div here — clean player output -->
-  <div id="tb">
-    <a class="tl" href="/">ola k ase</a>
-    <div class="tt">
-      ▶ {{{{ title }}}}
-      {{%- if year %}} ({{{{ year }}}}){{%- endif %}}
-      {{%- if season %}} · S{{{{ season }}}}E{{{{ episode }}}}{{%- endif %}}
-    </div>
-    <a class="bk" href="javascript:history.back()">← back</a>
-  </div>
-  <div id="pl">
-    <iframe
-      src="{{{{ embed_url }}}}"
-      allowfullscreen
-      allow="autoplay; fullscreen; encrypted-media; picture-in-picture; gyroscope; accelerometer"
-      referrerpolicy="origin"
-      scrolling="no">
-    </iframe>
-  </div>
-  <script>
-  (function(){{
-    /* Auto-hide topbar after 3.5s of inactivity */
-    var tb=document.getElementById('tb'), t;
-    function show(){{
-      tb.classList.remove('h');
-      clearTimeout(t);
-      t=setTimeout(function(){{ tb.classList.add('h'); }}, 3500);
-    }}
-    document.addEventListener('mousemove', show, {{passive:true}});
-    document.addEventListener('touchstart', show, {{passive:true}});
-    document.addEventListener('click', show, {{passive:true}});
-    show();
-  }})();
-  </script>
-</body>
-</html>"""
-
-
 @app.route("/")
 def home():
     return HOME
@@ -560,28 +354,15 @@ def search():
 
 @app.route("/play/<imdb_id>")
 def play(imdb_id):
-    title = request.args.get("title", "Movie")
-    year  = request.args.get("year", "")
-    embed = f"{VIDSRC_EMBED}/embed/movie?imdb={imdb_id}"
-    return render_template_string(PLAYER_TMPL,
-        title=title, year=year, embed_url=embed,
-        season=None, episode=None)
+    return redirect(imdb_play_url(imdb_id))
 
 @app.route("/tv/<imdb_id>")
 def tv_detail(imdb_id):
-    title = request.args.get("title", "Show")
-    year  = request.args.get("year", "")
-    return render_template_string(TV_TMPL,
-        imdb_id=imdb_id, title=title, year=year)
+    return redirect(imdb_play_url(imdb_id))
 
 @app.route("/watch-tv/<imdb_id>/<int:season>/<int:episode>")
 def watch_tv(imdb_id, season, episode):
-    title = request.args.get("title", "Show")
-    year  = request.args.get("year", "")
-    embed = f"{VIDSRC_EMBED}/embed/tv?imdb={imdb_id}&season={season}&episode={episode}"
-    return render_template_string(PLAYER_TMPL,
-        title=title, year=year, embed_url=embed,
-        season=season, episode=episode)
+    return redirect(imdb_play_url(imdb_id))
 
 
 if __name__ == "__main__":
