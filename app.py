@@ -3,22 +3,24 @@ ola k ase — PlayIMDb link implementation
 """
 
 from flask import Flask, request, redirect
+from markupsafe import escape
 import json, requests, os
 from urllib.parse import quote
 
 app = Flask(__name__)
 
 PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
+CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
 
 
 def imdb_play_url(imdb_id):
     return f"{PLAY_IMDB_TITLE_BASE}/{imdb_id}/"
 
-try:    cache = json.load(open("cache.json"))
+try:    cache = json.load(open(CACHE_PATH))
 except: cache = {}
 
 def save_cache():
-    try: json.dump(cache, open("cache.json","w"))
+    try: json.dump(cache, open(CACHE_PATH,"w"))
     except: pass
 
 
@@ -122,6 +124,7 @@ SCANLINES = """<div style="position:fixed;inset:0;pointer-events:none;z-index:90
     transparent 0,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 3px)"></div>"""
 
 def header(q=""):
+    q = escape(q)
     return f"""<header>
     <form class="srow" action="/search" method="get">
       <input type="text" name="q" value="{q}" placeholder="search..." autocomplete="off" spellcheck="false">
@@ -232,6 +235,8 @@ def render_grid_page(title_html, results, q=""):
             is_tv  = m.get("is_tv", False)
             s, ep  = m.get("season"), m.get("episode")
             dest = imdb_play_url(m["id"])
+            title = escape(m["title"])
+            meta_type = escape(m.get("type", ""))
 
             badge   = f'<div class="bdg{" tv" if is_tv else ""}">{"TV" if is_tv else "film"}</div>'
             img_tag = (f'<img src="{m["poster"]}" alt="" loading="lazy" '
@@ -244,8 +249,8 @@ def render_grid_page(title_html, results, q=""):
             items += f"""<a class="card" href="{dest}">
   <div class="pw">{img_tag}<div class="np" style="{nop_sty}">🎬</div>
     {badge}<div class="pwg"></div>{ep_info}</div>
-  <div class="cb"><div class="ct">{m["title"]}</div>
-    <div class="cm">{m.get("year","")}{(" · "+m["type"]) if m.get("type") else ""}</div>
+  <div class="cb"><div class="ct">{title}</div>
+    <div class="cm">{escape(m.get("year",""))}{(" · "+meta_type) if meta_type else ""}</div>
   </div></a>"""
     else:
         items = '<div class="empty"><h2>NO SIGNAL</h2><p>nothing found</p></div>'
@@ -350,7 +355,7 @@ def home():
 def search():
     q = request.args.get("q","").strip()
     if not q: return redirect("/")
-    return render_grid_page(f'results for <span>"{q}"</span>', search_imdb(q), q=q)
+    return render_grid_page(f'results for <span>"{escape(q)}"</span>', search_imdb(q), q=q)
 
 @app.route("/play/<imdb_id>")
 def play(imdb_id):
