@@ -36,9 +36,15 @@ cache = load_cache()
 
 
 def save_cache():
+    directory = os.path.dirname(CACHE_PATH)
+    tmp_path = f"{CACHE_PATH}.tmp"
+
     try:
-        with open(CACHE_PATH, "w") as fh:
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        with open(tmp_path, "w") as fh:
             json.dump(cache, fh)
+        os.replace(tmp_path, CACHE_PATH)
     except Exception:
         pass
 
@@ -83,6 +89,7 @@ def search_imdb(query):
             timeout=10,
             headers={"User-Agent": "Mozilla/5.0"},
         )
+        res.raise_for_status()
         data = res.json()
     except Exception as e:
         print(f"[search] {e}")
@@ -126,6 +133,11 @@ def favicon_png():
 @app.route("/favicon.ico")
 def favicon_ico():
     return redirect("/favicon.png")
+
+
+@app.route("/healthz")
+def healthz():
+    return {"ok": True, "site": SITE_NAME}
 
 
 @app.route("/search")

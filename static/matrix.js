@@ -4,7 +4,9 @@
   var F=14;
   var CHARS='01アイウエオカキクケコ@#$%ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var MSG='Just Keep Gooning';
-  var drops=[], msgCols={}, cols=0, started=false;
+  var drops=[], msgCols={}, cols=0, started=false, frozen=false, loopActive=false;
+  var raf=0, lastFrame=0, msgTimer=0, idleTimer=0;
+  var IDLE_MS=180000;
 
   function boot(){
     var bootEl=document.getElementById('boot');
@@ -54,6 +56,7 @@
     document.body.classList.remove('ui-hidden');
     var q=document.querySelector('.home-search input[name="q"]');
     if(q) q.focus({preventScroll:true});
+    armIdleCheck();
   }
 
   function init(){
@@ -68,11 +71,17 @@
   }
 
   function injectMsg(){
+    if(frozen || document.hidden)return;
     var attempts=0, col;
     do { col=Math.floor(Math.random()*cols); attempts++; }
     while(msgCols[col]!==undefined && attempts<20);
     if(msgCols[col]===undefined) msgCols[col]=0;
-    setTimeout(injectMsg, 1500+Math.random()*2500);
+    scheduleMsg();
+  }
+
+  function scheduleMsg(){
+    clearTimeout(msgTimer);
+    msgTimer=setTimeout(injectMsg, 1500+Math.random()*2500);
   }
 
   function tick(){
@@ -101,14 +110,101 @@
     }
   }
 
+  function loop(now){
+    if(!started || frozen){
+      loopActive=false;
+      raf=0;
+      return;
+    }
+    raf=requestAnimationFrame(loop);
+    if(document.hidden)return;
+    if(!lastFrame)lastFrame=now;
+    if(now-lastFrame<60)return;
+    lastFrame=now;
+    tick();
+  }
+
+  function startLoop(){
+    if(loopActive)return;
+    loopActive=true;
+    lastFrame=0;
+    raf=requestAnimationFrame(loop);
+  }
+
+  function stopLoop(){
+    loopActive=false;
+    if(raf)cancelAnimationFrame(raf);
+    raf=0;
+  }
+
   function startMatrix(){
     if(started || !c || !x)return;
     started=true;
     document.body.classList.add('rain-live');
     init();
     injectMsg();
-    setInterval(tick,60);
+    startLoop();
   }
+
+  function freezeMatrix(){
+    frozen=true;
+    document.body.classList.add('standby');
+    clearTimeout(msgTimer);
+    stopLoop();
+  }
+
+  function reloadPage(){
+    window.location.reload();
+  }
+
+  function showIdlePrompt(){
+    if(frozen || !document.body.classList.contains('home'))return;
+    freezeMatrix();
+    var overlay=document.createElement('div');
+    overlay.className='idle-check';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-label','Are you ok?');
+    overlay.innerHTML=[
+      '<div class="idle-monitor">',
+      '<button class="idle-x" type="button" aria-label="Close">x</button>',
+      '<p class="idle-line">are you ok?</p>',
+      '<p class="idle-line">enter, do you need help?</p>',
+      '<button class="idle-resume" type="button">resume</button>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click',function(e){
+      if(e.target===overlay || e.target.closest('button'))reloadPage();
+    });
+    window.addEventListener('keydown',reloadPage,{once:true});
+    var resume=overlay.querySelector('.idle-resume');
+    if(resume)resume.focus({preventScroll:true});
+  }
+
+  function armIdleCheck(){
+    if(!document.body.classList.contains('home'))return;
+    clearTimeout(idleTimer);
+    idleTimer=setTimeout(showIdlePrompt, IDLE_MS);
+  }
+
+  ['pointerdown','keydown','touchstart','mousemove'].forEach(function(eventName){
+    window.addEventListener(eventName,function(){
+      if(!frozen && !document.body.classList.contains('booting'))armIdleCheck();
+    },{passive:true});
+  });
+
+  document.addEventListener('visibilitychange',function(){
+    if(!started || frozen)return;
+    if(document.hidden){
+      clearTimeout(msgTimer);
+      stopLoop();
+      return;
+    }
+    injectMsg();
+    startLoop();
+    armIdleCheck();
+  });
 
   var rt;
   window.addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(init,200); });

@@ -16,12 +16,12 @@
     {% if results %}
       <div class="grid">
         {% for m in results %}
-          <a class="card" href="{{ m.play_url }}" aria-label="Open {{ m.title }}" style="--d: {{ loop.index0 * 45 }}ms">
-            <div class="pw">
+          <a class="card" href="{{ m.play_url }}" aria-label="Open {{ m.title }}" style="--d: {{ 900 if loop.index0 > 20 else loop.index0 * 45 }}ms">
+            <div class="pw{% if m.poster %} has-poster{% endif %}">
               {% if m.poster %}
-                <img src="{{ m.poster }}" alt="" loading="lazy" onerror="this.style.display='none'">
+                <img src="{{ m.poster }}" alt="" loading="lazy" onerror="this.hidden=true;this.closest('.pw').classList.add('poster-missing')">
               {% endif %}
-              <div class="np" {% if m.poster %}style="display:none"{% endif %}>🎬</div>
+              <div class="np">🎬</div>
               <div class="bdg{% if m.is_tv %} tv{% endif %}">{{ "TV" if m.is_tv else "film" }}</div>
               <div class="pwg"></div>
             </div>

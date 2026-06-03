@@ -1,0 +1,151 @@
+.home{width:100%;height:100%;background:#000;overflow:hidden}
+.home-wrap{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  z-index:20;
+  width:min(92vw,480px);
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 1rem;
+  opacity:1;
+  transition:opacity .85s ease,filter .85s ease;
+}
+.booting .home-wrap,
+.ui-hidden .home-wrap{opacity:0;filter:blur(4px)}
+.home-search{width:100%}
+.bar{
+  display:flex;width:100%;border:1px solid #00ff41;border-radius:2px;overflow:hidden;
+  background:#000;
+  box-shadow:0 0 20px rgba(0,255,65,.25),inset 0 0 18px rgba(0,255,65,.08);
+  transition:border-color .2s,box-shadow .3s,filter .2s;
+}
+.bar:focus-within{
+  border-color:#7dff9c;
+  box-shadow:0 0 42px rgba(0,255,65,.55),inset 0 0 22px rgba(0,255,65,.13);
+}
+.bar input[type=text]{
+  flex:1;min-width:0;background:linear-gradient(#000b03,#000);color:#00ff41;
+  border:none;outline:none;caret-color:#00ff41;
+  font-family:'Share Tech Mono',monospace;font-size:clamp(.95rem,4vw,1.15rem);
+  padding:.75em .9em;text-shadow:0 0 8px rgba(0,255,65,.45);
+}
+.bar input[type=text]::placeholder{color:#0a6426;opacity:.56}
+.bar input[type=submit]{
+  background:linear-gradient(#063612,#010701);color:#00ff41;border:none;
+  border-left:1px solid #00ff41;cursor:pointer;flex-shrink:0;
+  font-family:'Share Tech Mono',monospace;font-size:clamp(.8rem,3.5vw,1rem);
+  padding:.75em 1.1em;letter-spacing:.08em;text-transform:lowercase;
+  box-shadow:inset 0 0 16px rgba(0,255,65,.11);
+  text-shadow:0 0 8px rgba(0,255,65,.55);
+  transition:background .16s,color .16s,box-shadow .16s,transform .12s;
+}
+.bar input[type=submit]:hover,
+.bar input[type=submit]:focus-visible{
+  background:linear-gradient(#00ff41,#0aa02f);color:#000;outline:none;
+  box-shadow:0 0 22px rgba(0,255,65,.45),inset 0 0 8px rgba(255,255,255,.22);
+  text-shadow:none;
+}
+.bar input[type=submit]:active{transform:translateY(1px);background:#afffaf;color:#000}
+
+.boot{
+  position:fixed;inset:0;z-index:1200;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 50%,#020802 0,#000 64%);
+  transition:opacity .9s ease,visibility .9s ease;
+}
+.boot::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 45%,transparent 0,transparent 46%,rgba(0,0,0,.7) 78%,#000 100%),
+    repeating-linear-gradient(to bottom,rgba(0,255,65,.04) 0,rgba(0,255,65,.04) 1px,transparent 2px,transparent 5px);
+}
+.boot::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,0,0,.85),transparent 18%,transparent 82%,rgba(0,0,0,.85));
+}
+.boot-screen{
+  position:relative;width:min(86vw,720px);height:min(45vw,360px);
+  min-height:230px;border:1px solid rgba(57,145,75,.55);border-radius:2px;
+  box-shadow:0 0 22px rgba(0,255,65,.2),inset 0 0 38px rgba(0,255,65,.12);
+  background:linear-gradient(#020602,#000 24%,#000);
+  padding:clamp(3.7rem,8vw,5.4rem) clamp(2rem,8vw,4.2rem);
+  color:#4bf2a1;font-family:'Share Tech Mono',monospace;
+  text-shadow:0 0 7px rgba(75,242,161,.65);
+}
+.boot-screen::before{
+  content:"";position:absolute;left:-1px;right:-1px;top:-8px;height:8px;
+  background:linear-gradient(90deg,rgba(7,33,9,.25),rgba(74,145,70,.85),rgba(7,33,9,.25));
+  box-shadow:0 0 17px rgba(0,255,65,.36);
+}
+.boot-line{
+  min-height:1.45em;font-size:clamp(.92rem,2vw,1.15rem);line-height:1.45;
+  letter-spacing:.03em;white-space:pre-wrap;
+}
+.boot-line.active::after{
+  content:"";display:inline-block;width:.58em;height:1em;margin-left:.12em;
+  border-right:2px solid #4bf2a1;vertical-align:-.12em;
+  animation:blink .7s steps(1,end) infinite;
+}
+.boot.done{opacity:0;visibility:hidden}
+
+.idle-check{
+  position:fixed;inset:0;z-index:1300;display:grid;place-items:center;
+  padding:1rem;background:rgba(0,0,0,.58);
+  backdrop-filter:blur(2px);
+  -webkit-backdrop-filter:blur(2px);
+  animation:idle-fade .34s ease both;
+}
+.idle-monitor{
+  position:relative;width:min(90vw,620px);min-height:260px;
+  border:1px solid rgba(70,170,78,.68);border-radius:3px;
+  background:
+    radial-gradient(ellipse at 50% 42%,rgba(0,255,65,.08),transparent 58%),
+    linear-gradient(#020802,#000 32%,#000);
+  box-shadow:0 0 34px rgba(0,255,65,.24),inset 0 0 46px rgba(0,255,65,.15);
+  padding:4.4rem clamp(1.3rem,6vw,3.8rem) 3rem;
+  color:#4bf2a1;font-family:'Share Tech Mono',monospace;
+  text-shadow:0 0 8px rgba(75,242,161,.68);
+  transform:translateY(10px) scale(.985);
+  animation:monitor-in .42s cubic-bezier(.2,.8,.2,1) .08s both;
+}
+.idle-monitor::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(to bottom,rgba(0,255,65,.05) 0,rgba(0,255,65,.05) 1px,transparent 2px,transparent 5px),
+    radial-gradient(ellipse at 50% 50%,transparent 0,transparent 62%,rgba(0,0,0,.78) 100%);
+}
+.idle-monitor::after{
+  content:"";position:absolute;left:8%;right:8%;top:-9px;height:9px;
+  background:linear-gradient(90deg,transparent,rgba(98,191,93,.92),transparent);
+  box-shadow:0 0 17px rgba(0,255,65,.34);
+}
+.idle-x{
+  position:absolute;top:.7rem;right:.8rem;z-index:1;
+  border:1px solid #145d22;background:#020802;color:#00ff41;
+  width:2rem;height:2rem;line-height:1;cursor:pointer;
+  font:1rem 'Share Tech Mono',monospace;text-shadow:0 0 8px rgba(0,255,65,.5);
+}
+.idle-line{
+  position:relative;z-index:1;min-height:1.35em;
+  font-size:clamp(1rem,3vw,1.35rem);line-height:1.45;
+  letter-spacing:.03em;
+}
+.idle-line:last-of-type::after{
+  content:"";display:inline-block;width:.58em;height:1em;margin-left:.12em;
+  border-right:2px solid #4bf2a1;vertical-align:-.12em;
+  animation:blink .7s steps(1,end) infinite;
+}
+.idle-resume{
+  position:relative;z-index:1;margin-top:2.5rem;
+  border:1px solid #00ff41;background:linear-gradient(#063612,#010701);
+  color:#00ff41;cursor:pointer;padding:.62em 1.25em;
+  font:1rem 'Share Tech Mono',monospace;letter-spacing:.08em;text-transform:lowercase;
+  box-shadow:inset 0 0 16px rgba(0,255,65,.11),0 0 18px rgba(0,255,65,.18);
+}
+.idle-x:hover,.idle-x:focus-visible,
+.idle-resume:hover,.idle-resume:focus-visible{
+  background:#00ff41;color:#000;outline:none;text-shadow:none;
+}
+
+@keyframes idle-fade{from{opacity:0}to{opacity:1}}
+@keyframes monitor-in{
+  to{transform:translateY(0) scale(1)}
+}
