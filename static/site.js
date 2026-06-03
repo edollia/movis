@@ -1,5 +1,5 @@
 (function(){
-  var ONLINE_MS=3000;
+  var ONLINE_MS=2000;
   var SUPPORT_MS=10000;
 
   function setSignalMode(mode){
