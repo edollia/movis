@@ -18,7 +18,12 @@
 
   function bindTapSounds(){
     document.querySelectorAll('[data-tap-sound]').forEach(function(el){
-      el.addEventListener('click',function(){
+      el.addEventListener('click',function(event){
+        if(el.tagName==='A' && el.target==='_blank'){
+          event.preventDefault();
+          var opened=window.open(el.href,'_blank','noopener,noreferrer');
+          if(opened)opened.opener=null;
+        }
         var src=el.getAttribute('data-tap-sound');
         if(!src)return;
         try{
