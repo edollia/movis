@@ -1,4 +1,50 @@
 (function(){
+  function boot(){
+    var bootEl=document.getElementById('boot');
+    if(!bootEl)return;
+    var lines=[
+      {el:document.getElementById('boot-line-1'), text:'Knock, knock, Neo.'},
+      {el:document.getElementById('boot-line-2'), text:'Have you gooned today.'}
+    ];
+    var lineIndex=0, charIndex=0;
+
+    function finish(){
+      lines.forEach(function(line){ if(line.el) line.el.classList.remove('active'); });
+      bootEl.classList.add('done');
+      document.body.classList.remove('booting');
+      setTimeout(function(){
+        bootEl.remove();
+        var q=document.querySelector('.home-search input[name="q"]');
+        if(q) q.focus({preventScroll:true});
+      }, 900);
+    }
+
+    function type(){
+      var line=lines[lineIndex];
+      if(!line || !line.el){ finish(); return; }
+      lines.forEach(function(item){ if(item.el) item.el.classList.remove('active'); });
+      line.el.classList.add('active');
+      line.el.textContent=line.text.slice(0,charIndex);
+      if(charIndex<=line.text.length){
+        charIndex++;
+        setTimeout(type, 54 + Math.random()*42);
+        return;
+      }
+      line.el.classList.remove('active');
+      lineIndex++;
+      charIndex=0;
+      if(lineIndex<lines.length){
+        setTimeout(type, 520);
+      } else {
+        setTimeout(finish, 820);
+      }
+    }
+
+    setTimeout(type, 520);
+  }
+
+  boot();
+
   var c=document.getElementById('mx'); if(!c)return;
   var x=c.getContext('2d');
   var F=14;

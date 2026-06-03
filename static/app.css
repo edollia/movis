@@ -19,7 +19,10 @@ body{min-height:100vh}
   width:min(92vw,480px);
   display:flex;flex-direction:column;align-items:center;
   padding:0 1rem;
+  opacity:1;
+  transition:opacity .85s ease,filter .85s ease;
 }
+.booting .home-wrap{opacity:0;filter:blur(4px)}
 .home-search{width:100%}
 .bar{display:flex;width:100%;border:1px solid #00ff41;border-radius:2px;overflow:hidden;
   box-shadow:0 0 20px rgba(0,255,65,.25);transition:box-shadow .3s}
@@ -131,6 +134,48 @@ header{
   color:#005f19;font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;
   text-shadow:0 0 9px rgba(0,255,65,.28);pointer-events:none;
 }
+.booting .signal{opacity:0}
+
+.boot{
+  position:fixed;inset:0;z-index:1200;display:grid;place-items:center;
+  background:radial-gradient(circle at 50% 50%,#020802 0,#000 64%);
+  transition:opacity .9s ease,visibility .9s ease;
+}
+.boot::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 45%,transparent 0,transparent 46%,rgba(0,0,0,.7) 78%,#000 100%),
+    repeating-linear-gradient(to bottom,rgba(0,255,65,.04) 0,rgba(0,255,65,.04) 1px,transparent 2px,transparent 5px);
+}
+.boot::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(0,0,0,.85),transparent 18%,transparent 82%,rgba(0,0,0,.85));
+}
+.boot-screen{
+  position:relative;width:min(86vw,720px);height:min(45vw,360px);
+  min-height:230px;border:1px solid rgba(57,145,75,.55);border-radius:2px;
+  box-shadow:0 0 22px rgba(0,255,65,.2),inset 0 0 38px rgba(0,255,65,.12);
+  background:linear-gradient(#020602,#000 24%,#000);
+  padding:clamp(3.7rem,8vw,5.4rem) clamp(2rem,8vw,4.2rem);
+  color:#4bf2a1;font-family:'Share Tech Mono',monospace;
+  text-shadow:0 0 7px rgba(75,242,161,.65);
+}
+.boot-screen::before{
+  content:"";position:absolute;left:-1px;right:-1px;top:-8px;height:8px;
+  background:linear-gradient(90deg,rgba(7,33,9,.25),rgba(74,145,70,.85),rgba(7,33,9,.25));
+  box-shadow:0 0 17px rgba(0,255,65,.36);
+}
+.boot-line{
+  min-height:1.45em;font-size:clamp(.92rem,2vw,1.15rem);line-height:1.45;
+  letter-spacing:.03em;white-space:pre-wrap;
+}
+.boot-line.active::after{
+  content:"";display:inline-block;width:.58em;height:1em;margin-left:.12em;
+  border-right:2px solid #4bf2a1;vertical-align:-.12em;
+  animation:blink .7s steps(1,end) infinite;
+}
+.boot.done{opacity:0;visibility:hidden}
+@keyframes blink{50%{opacity:0}}
 
 @media(max-width:380px){
   header{padding:.45rem .5rem}
@@ -138,6 +183,8 @@ header{
   .srow button{font-size:.7rem;padding:.42em .55em}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.42rem;padding:.5rem}
   .cb{padding:.34rem .36rem}
+  .boot-screen{width:88vw;height:62vw;min-height:210px;padding:3.2rem 1.35rem}
+  .boot-line{font-size:.78rem}
 }
 @media(min-width:1900px){
   .grid{grid-template-columns:repeat(auto-fill,minmax(185px,1fr))}
