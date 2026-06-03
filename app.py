@@ -2,19 +2,24 @@
 ola k ase — PlayIMDb link implementation
 """
 
-from flask import Flask, request, redirect
+from flask import Flask, request, redirect, abort
 from markupsafe import escape
-import json, requests, os
+import json, requests, os, re
 from urllib.parse import quote
 
 app = Flask(__name__)
 
 PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
 CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
+IMDB_ID_RE = re.compile(r"^tt\d+$")
 
 
 def imdb_play_url(imdb_id):
     return f"{PLAY_IMDB_TITLE_BASE}/{imdb_id}/"
+
+
+def valid_imdb_id(imdb_id):
+    return bool(IMDB_ID_RE.fullmatch(imdb_id or ""))
 
 try:    cache = json.load(open(CACHE_PATH))
 except: cache = {}
@@ -39,7 +44,7 @@ def search_imdb(query):
     out = []
     for item in data.get("d",[]):
         iid = item.get("id","")
-        if not iid.startswith("tt"): continue
+        if not valid_imdb_id(iid): continue
         img = item.get("i",{})
         qt  = item.get("q","")
         out.append({
@@ -237,11 +242,12 @@ def render_grid_page(title_html, results, q=""):
             dest = imdb_play_url(m["id"])
             title = escape(m["title"])
             meta_type = escape(m.get("type", ""))
+            poster = escape(m.get("poster", ""))
 
             badge   = f'<div class="bdg{" tv" if is_tv else ""}">{"TV" if is_tv else "film"}</div>'
-            img_tag = (f'<img src="{m["poster"]}" alt="" loading="lazy" '
-                       f'onerror="this.style.display=\'none\'">') if m.get("poster") else ""
-            nop_sty = "display:none" if m.get("poster") else ""
+            img_tag = (f'<img src="{poster}" alt="" loading="lazy" '
+                       f'onerror="this.style.display=\'none\'">') if poster else ""
+            nop_sty = "display:none" if poster else ""
             ep_info = (f'<div style="position:absolute;bottom:.35rem;left:.35rem;'
                        f'font-size:.56rem;color:#00aa22;background:rgba(0,0,0,.82);'
                        f'padding:.1em .3em;border-radius:2px">S{s}E{ep}</div>'
@@ -359,14 +365,17 @@ def search():
 
 @app.route("/play/<imdb_id>")
 def play(imdb_id):
+    if not valid_imdb_id(imdb_id): abort(404)
     return redirect(imdb_play_url(imdb_id))
 
 @app.route("/tv/<imdb_id>")
 def tv_detail(imdb_id):
+    if not valid_imdb_id(imdb_id): abort(404)
     return redirect(imdb_play_url(imdb_id))
 
 @app.route("/watch-tv/<imdb_id>/<int:season>/<int:episode>")
 def watch_tv(imdb_id, season, episode):
+    if not valid_imdb_id(imdb_id): abort(404)
     return redirect(imdb_play_url(imdb_id))
 
 
