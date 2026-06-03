@@ -1,8 +1,8 @@
 """
-ola k ase — PlayIMDb link implementation
+GoonToThis — PlayIMDb link implementation
 """
 
-from flask import Flask, request, redirect, abort
+from flask import Flask, request, redirect, abort, send_from_directory
 from markupsafe import escape
 import json, requests, os, re
 from urllib.parse import quote
@@ -12,6 +12,9 @@ app = Flask(__name__)
 PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
 CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
 IMDB_ID_RE = re.compile(r"^tt\d+$")
+SITE_NAME = "GoonToThis"
+SITE_URL = "https://goontothis.com"
+SITE_DESCRIPTION = "Search a movie or show, then tap a card to go right to it."
 
 
 def imdb_play_url(imdb_id):
@@ -62,6 +65,19 @@ def search_imdb(query):
 GOAT = '<script data-goatcounter="https://goon2this.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>'
 
 FONTS = '<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">'
+
+META = f"""<meta name="description" content="{SITE_DESCRIPTION}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="{SITE_NAME}">
+  <meta property="og:title" content="{SITE_NAME}">
+  <meta property="og:description" content="{SITE_DESCRIPTION}">
+  <meta property="og:url" content="{SITE_URL}">
+  <meta property="og:image" content="{SITE_URL}/favicon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{SITE_NAME}">
+  <meta name="twitter:description" content="{SITE_DESCRIPTION}">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">"""
 
 MATRIX_JS = r"""
 <script>
@@ -259,14 +275,15 @@ def render_grid_page(title_html, results, q=""):
     <div class="cm">{escape(m.get("year",""))}{(" · "+meta_type) if meta_type else ""}</div>
   </div></a>"""
     else:
-        items = '<div class="empty"><h2>NO SIGNAL</h2><p>nothing found</p></div>'
+        items = '<div class="empty"><h2>nvm just get netflix</h2></div>'
 
     return f"""<!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>ola k ase</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>{SITE_NAME}</title>
+  {META}
   {INNER_CSS}
   {GOAT}
 </head>
@@ -284,7 +301,8 @@ HOME = f"""<!DOCTYPE html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>ola k ase</title>
+  <title>{SITE_NAME}</title>
+  {META}
   {FONTS}
   {GOAT}
   <style>
@@ -356,6 +374,14 @@ HOME = f"""<!DOCTYPE html>
 @app.route("/")
 def home():
     return HOME
+
+@app.route("/favicon.png")
+def favicon_png():
+    return send_from_directory(app.root_path, "favicon.png", mimetype="image/png")
+
+@app.route("/favicon.ico")
+def favicon_ico():
+    return redirect("/favicon.png")
 
 @app.route("/search")
 def search():

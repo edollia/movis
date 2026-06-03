@@ -11,7 +11,7 @@ fi
 
 "$VENV_DIR/bin/python" -m pip install -r "$ROOT_DIR/requirements.txt"
 
-printf '\nola k ase local test server:\n'
+printf '\nGoonToThis local test server:\n'
 printf '  http://127.0.0.1:%s\n\n' "$PORT"
 
 cd "$ROOT_DIR"
