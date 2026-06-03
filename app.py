@@ -17,6 +17,7 @@ CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
 IMDB_ID_RE = re.compile(r"^tt\d+$")
 
 SITE_NAME = "GoonToThis"
+SITE_TITLE = "GoonToThis - Goon To This Movie Search"
 SITE_URL = "https://goontothis.com"
 SITE_DESCRIPTION = "Search a movie or show, then tap a card to go right to it."
 
@@ -66,6 +67,7 @@ def with_play_urls(results):
 def template_context(**extra):
     base = {
         "site_name": SITE_NAME,
+        "site_title": SITE_TITLE,
         "site_url": SITE_URL,
         "site_description": SITE_DESCRIPTION,
         "goatcounter_src": GOATCOUNTER_SRC,
@@ -143,6 +145,31 @@ def cut2_mp3():
 @app.route("/healthz")
 def healthz():
     return {"ok": True, "site": SITE_NAME}
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        f"Sitemap: {SITE_URL}/sitemap.xml",
+        "",
+    ]
+    return app.response_class("\n".join(lines), mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{SITE_URL}/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+"""
+    return app.response_class(xml, mimetype="application/xml")
 
 
 @app.route("/search")
