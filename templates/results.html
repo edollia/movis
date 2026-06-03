@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block body_class %}results-page{% endblock %}
+
+{% block body %}
+  <div class="scan"></div>
+  <header>
+    <form class="srow" action="/search" method="get">
+      <input type="text" name="q" value="{{ q }}" placeholder="search..." autocomplete="off" spellcheck="false">
+      <button type="submit">[go]</button>
+    </form>
+  </header>
+
+  <main class="results-shell">
+    <div class="ph">results for <span>"{{ q }}"</span></div>
+    {% if results %}
+      <div class="grid">
+        {% for m in results %}
+          <a class="card" href="{{ m.play_url }}" aria-label="Open {{ m.title }}">
+            <div class="pw">
+              {% if m.poster %}
+                <img src="{{ m.poster }}" alt="" loading="lazy" onerror="this.style.display='none'">
+              {% endif %}
+              <div class="np" {% if m.poster %}style="display:none"{% endif %}>🎬</div>
+              <div class="bdg{% if m.is_tv %} tv{% endif %}">{{ "TV" if m.is_tv else "film" }}</div>
+              <div class="pwg"></div>
+            </div>
+            <div class="cb">
+              <div class="ct">{{ m.title }}</div>
+              <div class="cm">{{ m.year }}{% if m.type %} · {{ m.type }}{% endif %}</div>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty">
+        <h2>nvm just get netflix</h2>
+      </div>
+    {% endif %}
+  </main>
+  <div class="signal">signal: online</div>
+{% endblock %}
