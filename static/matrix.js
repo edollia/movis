@@ -13,7 +13,7 @@
     if(!bootEl){ startMatrix(); revealUi(); return; }
     var lines=[
       {el:document.getElementById('boot-line-1'), text:'Knock, knock, Neo.'},
-      {el:document.getElementById('boot-line-2'), text:'Have you gooned today.'}
+      {el:document.getElementById('boot-line-2'), text:'Have you gooned today?', pauseAfter:'Have you gooned today'}
     ];
     var lineIndex=0, charIndex=0;
 
@@ -36,7 +36,9 @@
       line.el.textContent=line.text.slice(0,charIndex);
       if(charIndex<=line.text.length){
         charIndex++;
-        setTimeout(type, 54 + Math.random()*42);
+        var delay=(54 + Math.random()*42)*1.2;
+        if(line.pauseAfter && line.text.slice(0,charIndex-1)===line.pauseAfter)delay=1000;
+        setTimeout(type, delay);
         return;
       }
       line.el.classList.remove('active');
@@ -169,7 +171,7 @@
       '<div class="idle-monitor">',
       '<button class="idle-x" type="button" aria-label="Close">x</button>',
       '<p class="idle-line">are you ok?</p>',
-      '<p class="idle-line">enter, do you need help?</p>',
+      '<p class="idle-line">do you need help?</p>',
       '<button class="idle-resume" type="button">resume</button>',
       '</div>'
     ].join('');

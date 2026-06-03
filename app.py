@@ -135,6 +135,11 @@ def favicon_ico():
     return redirect("/favicon.png")
 
 
+@app.route("/cut2.mp3")
+def cut2_mp3():
+    return send_from_directory(app.root_path, "CUT2.mp3", mimetype="audio/mpeg")
+
+
 @app.route("/healthz")
 def healthz():
     return {"ok": True, "site": SITE_NAME}
