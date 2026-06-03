@@ -6,7 +6,7 @@
   <div class="scan"></div>
   <header>
     <form class="srow" action="/search" method="get">
-      <input type="text" name="q" value="{{ q }}" placeholder="search..." autocomplete="off" spellcheck="false">
+      <input type="text" name="q" value="{{ q }}" placeholder="search movies &amp; tv shows..." autocomplete="off" spellcheck="false">
       <button type="submit">[go]</button>
     </form>
   </header>
@@ -16,7 +16,7 @@
     {% if results %}
       <div class="grid">
         {% for m in results %}
-          <a class="card" href="{{ m.play_url }}" aria-label="Open {{ m.title }}">
+          <a class="card" href="{{ m.play_url }}" aria-label="Open {{ m.title }}" style="--d: {{ loop.index0 * 45 }}ms">
             <div class="pw">
               {% if m.poster %}
                 <img src="{{ m.poster }}" alt="" loading="lazy" onerror="this.style.display='none'">

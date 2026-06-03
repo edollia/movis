@@ -1,7 +1,14 @@
 (function(){
+  var c=document.getElementById('mx');
+  var x=c ? c.getContext('2d') : null;
+  var F=14;
+  var CHARS='01アイウエオカキクケコ@#$%ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var MSG='Just Keep Gooning';
+  var drops=[], msgCols={}, cols=0, started=false;
+
   function boot(){
     var bootEl=document.getElementById('boot');
-    if(!bootEl)return;
+    if(!bootEl){ startMatrix(); revealUi(); return; }
     var lines=[
       {el:document.getElementById('boot-line-1'), text:'Knock, knock, Neo.'},
       {el:document.getElementById('boot-line-2'), text:'Have you gooned today.'}
@@ -14,9 +21,9 @@
       document.body.classList.remove('booting');
       setTimeout(function(){
         bootEl.remove();
-        var q=document.querySelector('.home-search input[name="q"]');
-        if(q) q.focus({preventScroll:true});
-      }, 900);
+        startMatrix();
+        setTimeout(revealUi, 2000);
+      }, 950);
     }
 
     function type(){
@@ -43,16 +50,14 @@
     setTimeout(type, 520);
   }
 
-  boot();
-
-  var c=document.getElementById('mx'); if(!c)return;
-  var x=c.getContext('2d');
-  var F=14;
-  var CHARS='01アイウエオカキクケコ@#$%ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  var MSG='Just Keep Gooning';
-  var drops=[], msgCols={}, cols=0;
+  function revealUi(){
+    document.body.classList.remove('ui-hidden');
+    var q=document.querySelector('.home-search input[name="q"]');
+    if(q) q.focus({preventScroll:true});
+  }
 
   function init(){
+    if(!c || !x)return;
     c.width=window.innerWidth; c.height=window.innerHeight;
     cols=Math.floor(c.width/F);
     drops=Array.from({length:cols},function(){
@@ -71,6 +76,7 @@
   }
 
   function tick(){
+    if(!x)return;
     x.fillStyle='rgba(0,0,0,0.05)'; x.fillRect(0,0,c.width,c.height);
     x.font='bold '+F+'px monospace';
     for(var i=0;i<drops.length;i++){
@@ -95,9 +101,16 @@
     }
   }
 
+  function startMatrix(){
+    if(started || !c || !x)return;
+    started=true;
+    document.body.classList.add('rain-live');
+    init();
+    injectMsg();
+    setInterval(tick,60);
+  }
+
   var rt;
   window.addEventListener('resize',function(){ clearTimeout(rt); rt=setTimeout(init,200); });
-  init();
-  injectMsg();
-  setInterval(tick,60);
+  boot();
 })();

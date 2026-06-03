@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block body_class %}home booting{% endblock %}
+{% block body_class %}home booting ui-hidden{% endblock %}
 
 {% block body %}
   <canvas id="mx"></canvas>
@@ -14,7 +14,7 @@
   <main class="home-wrap">
     <form action="/search" method="get" class="home-search">
       <div class="bar">
-        <input type="text" name="q" placeholder="search movies &amp; tv..." autofocus autocomplete="off" spellcheck="false">
+        <input type="text" name="q" placeholder="search movies &amp; tv shows..." autofocus autocomplete="off" spellcheck="false">
         <input type="submit" value="go">
       </div>
     </form>
