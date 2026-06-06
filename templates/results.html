@@ -18,7 +18,7 @@
         <h1>results for <span>"{{ q }}"</span></h1>
       </div>
       {% if results %}
-        <p class="deck-kicker">{{ results|length }} matches. swipe the deck.</p>
+        <p class="deck-kicker">{{ results|length }} matches tuned.</p>
       {% endif %}
     </section>
     {% if results %}
@@ -34,9 +34,10 @@
             <button type="button" class="deck-btn" data-carousel-next aria-label="Next result">›</button>
           </div>
         </div>
-        <ol class="carousel-track" data-carousel-track tabindex="0">
-        {% for m in results %}
-          <li class="carousel-slide" data-slide style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
+        <div class="deck-stage" data-deck-stage>
+          <ol class="carousel-track" data-carousel-track tabindex="0">
+          {% for m in results %}
+            <li class="carousel-slide" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-flip-card>
               <div class="movie-face movie-front">
                 <div class="poster-stage{% if m.poster %} has-poster{% endif %}">
@@ -83,9 +84,10 @@
                 </div>
               </div>
             </article>
-          </li>
-        {% endfor %}
-        </ol>
+            </li>
+          {% endfor %}
+          </ol>
+        </div>
       </section>
     {% else %}
       <div class="empty">
