@@ -153,10 +153,7 @@ body.results-page{
   touch-action:pan-y;
   transform-style:preserve-3d;
 }
-.carousel-track:focus-visible{
-  outline:1px solid #00ff41;
-  outline-offset:-1px;
-}
+.carousel-track:focus-visible{outline:none}
 .carousel-slide{
   --deck-x:0px;
   --deck-y:0px;
@@ -308,10 +305,7 @@ body.results-page{
   border-radius:8px;
   text-decoration:none;
 }
-.card-hit:focus-visible{
-  outline:1px solid #00ff41;
-  outline-offset:-4px;
-}
+.card-hit:focus-visible{outline:none}
 .movie-card.is-active .movie-face{
   border-color:rgba(0,255,65,.74);
   box-shadow:
@@ -324,7 +318,8 @@ body.results-page{
   position:relative;
   z-index:0;
   pointer-events:none;
-  height:64%;
+  flex:1 1 auto;
+  height:auto;
   min-height:0;
   background:
     linear-gradient(135deg,rgba(0,204,255,.12),transparent 40%),
@@ -375,8 +370,9 @@ body.results-page{
   position:relative;
   z-index:2;
   pointer-events:none;
-  min-height:6.1rem;
-  padding:.86rem .92rem 1rem;
+  flex:0 0 auto;
+  min-height:0;
+  padding:.82rem .92rem .95rem;
   display:flex;flex-direction:column;gap:.24rem;
 }
 .movie-copy h3{
@@ -426,7 +422,7 @@ body.results-page{
   .deck-head{align-items:flex-end}
   .deck-controls{gap:.32rem}
   .deck-btn{width:2.32rem;height:2.32rem}
-  .movie-copy{min-height:5.5rem;padding:.7rem .72rem .82rem}
+  .movie-copy{padding:.66rem .72rem .76rem}
   .carousel-slide:nth-child(2){--deck-x:52px}
   .carousel-slide:nth-child(3){--deck-x:82px}
   .carousel-slide:nth-child(4){--deck-x:106px}

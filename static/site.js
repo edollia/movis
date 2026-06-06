@@ -76,7 +76,9 @@
       var dragMoved=false;
       var resizeTimer=0;
       var wheelTimer=0;
+      var wheelIdleTimer=0;
       var wheelLocked=false;
+      var wheelAccum=0;
 
       if(!track || !slides.length)return;
 
@@ -234,13 +236,20 @@
 
       track.addEventListener('wheel',function(event){
         var delta=Math.abs(event.deltaX)>Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-        if(Math.abs(delta)<6)return;
+        if(Math.abs(delta)<4)return;
         event.preventDefault();
-        if(wheelLocked)return;
+        wheelAccum+=delta;
+        clearTimeout(wheelIdleTimer);
+        wheelIdleTimer=setTimeout(function(){
+          wheelAccum=0;
+          wheelLocked=false;
+        },180);
+        if(wheelLocked || Math.abs(wheelAccum)<92)return;
         wheelLocked=true;
-        scrollToIndex(activeIndex+(delta>0 ? 1 : -1));
+        scrollToIndex(activeIndex+(wheelAccum>0 ? 1 : -1));
+        wheelAccum=0;
         clearTimeout(wheelTimer);
-        wheelTimer=setTimeout(function(){ wheelLocked=false; },360);
+        wheelTimer=setTimeout(function(){ wheelLocked=false; },460);
       },{passive:false});
 
       window.addEventListener('resize',function(){
