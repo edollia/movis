@@ -25,15 +25,17 @@
           </div>
         </div>
         <div class="deck-stage" data-deck-stage>
+          <button type="button" class="deck-hotzone deck-hotzone-prev" data-carousel-hit-prev aria-hidden="true" tabindex="-1"></button>
+          <button type="button" class="deck-hotzone deck-hotzone-next" data-carousel-hit-next aria-hidden="true" tabindex="-1"></button>
           <ol class="carousel-track" data-carousel-track tabindex="0">
           {% for m in results %}
             <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-movie-card>
               <div class="movie-face movie-front">
                 <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}"></a>
-                <div class="poster-stage{% if m.poster %} has-poster{% endif %}">
+                <div class="poster-stage{% if m.poster %} has-poster poster-loading{% endif %}">
                   {% if m.poster %}
-                    <img src="{{ m.poster }}" alt="{{ m.title }} poster" loading="lazy" onerror="this.hidden=true;this.closest('.poster-stage').classList.add('poster-missing')">
+                    <img src="{{ m.poster }}" alt="{{ m.title }} poster" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async"{% if loop.first %} fetchpriority="high"{% endif %} data-poster-img>
                   {% endif %}
                   <div class="poster-fallback">film</div>
                   <div class="pick-rank">#{{ "%02d"|format(loop.index) }}</div>

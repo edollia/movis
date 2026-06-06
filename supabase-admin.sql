@@ -120,4 +120,7 @@ begin
   values (admin_user_id, admin_email)
   on conflict (user_id) do update
   set email = excluded.email;
+
+  delete from public.movis_admins
+  where user_id <> admin_user_id;
 end $$;

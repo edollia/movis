@@ -30,6 +30,13 @@ GOATCOUNTER_SRC = "//gc.zgo.at/count.js"
 GOATCOUNTER_SITE = "https://goon2this.goatcounter.com/count"
 OG_IMAGE = f"{SITE_URL}/static/og-image.png"
 
+
+@app.after_request
+def add_cache_headers(response):
+    if response.content_type and response.content_type.startswith("text/html"):
+        response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
+    return response
+
 DEFAULT_SITE_SETTINGS = {
     "show_loading_screen": True,
     "loading_line_1": "Knock, knock, Neo.",
@@ -192,6 +199,13 @@ def save_local_settings(settings):
     os.replace(tmp_path, SETTINGS_PATH)
 
 
+def remember_local_settings(settings):
+    try:
+        save_local_settings(settings)
+    except Exception as e:
+        app.logger.warning("Could not write local settings fallback: %s", e)
+
+
 def load_supabase_settings():
     if not supabase_configured():
         return None
@@ -228,7 +242,7 @@ def get_site_settings(force=False):
                 remote_settings = load_supabase_settings()
                 if remote_settings:
                     settings = remote_settings
-                    save_local_settings(settings)
+                    remember_local_settings(settings)
             except Exception as e:
                 app.logger.warning("Could not load Supabase settings: %s", e)
 
@@ -252,7 +266,7 @@ def save_site_settings(settings, admin_token=None):
         res.raise_for_status()
 
     with settings_lock:
-        save_local_settings(settings)
+        remember_local_settings(settings)
         settings_cache["value"] = settings.copy()
         settings_cache["loaded_at"] = now_ts()
 
@@ -409,26 +423,9 @@ def supabase_user(token):
     return res.json()
 
 
-def user_is_admin(user, token):
+def user_is_admin(user):
     user_id = user.get("id") if isinstance(user, dict) else ""
-    if user_id.lower() in ADMIN_USER_IDS:
-        return True
-    if not user_id or not supabase_configured():
-        return False
-
-    try:
-        res = requests.get(
-            f"{SUPABASE_URL}/rest/v1/movis_admins",
-            params={"user_id": f"eq.{user_id}", "select": "user_id", "limit": "1"},
-            headers=supabase_headers(token),
-            timeout=5,
-        )
-        if res.status_code != 200:
-            return False
-        return bool(res.json())
-    except Exception as e:
-        app.logger.warning("Could not verify admin user: %s", e)
-        return False
+    return bool(user_id and user_id.lower() in ADMIN_USER_IDS)
 
 
 def require_admin():
@@ -438,7 +435,7 @@ def require_admin():
     user = supabase_user(token)
     if not user:
         return None, None, admin_error("Your session expired. Sign in again.", 401)
-    if not user_is_admin(user, token):
+    if not user_is_admin(user):
         return None, None, admin_error("This Supabase user is not an admin.", 403)
     return user, token, None
 
