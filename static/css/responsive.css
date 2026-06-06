@@ -2,13 +2,18 @@
   header{padding:.45rem .5rem}
   .srow input{font-size:.75rem;padding:.42em .5em}
   .srow button{font-size:.7rem;padding:.42em .55em}
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.42rem;padding:.5rem}
-  .cb{padding:.34rem .36rem}
+  .results-intro{padding:.9rem .7rem .5rem}
+  .deck-head{padding:0 .7rem .7rem}
+  .carousel-track{padding-inline:.7rem;scroll-padding-inline:.7rem}
+  .carousel-slide{flex-basis:86vw;height:500px}
+  .movie-actions{padding:.62rem .7rem .75rem;gap:.38rem}
+  .launch-link,.flip-btn{font-size:.78rem;min-height:2.42rem}
   .boot-screen{width:88vw;height:62vw;min-height:210px;padding:3.2rem 1.35rem}
   .boot-line{font-size:.78rem}
   .idle-monitor{min-height:240px;padding:4rem 1.25rem 2.4rem}
   .idle-line{font-size:.92rem}
 }
 @media(min-width:1900px){
-  .grid{grid-template-columns:repeat(auto-fill,minmax(185px,1fr))}
+  .deck,.results-intro{width:min(100%,1500px)}
+  .carousel-slide{flex-basis:410px}
 }

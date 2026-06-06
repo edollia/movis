@@ -8,6 +8,10 @@
   var raf=0, lastFrame=0, msgTimer=0, idleTimer=0;
   var IDLE_MS=180000;
 
+  if(document.body.classList.contains('home')){
+    document.body.classList.add('booting','ui-hidden');
+  }
+
   function boot(){
     var bootEl=document.getElementById('boot');
     if(!bootEl){ startMatrix(); revealUi(); return; }
@@ -169,10 +173,10 @@
     overlay.setAttribute('aria-label','Are you ok?');
     overlay.innerHTML=[
       '<div class="idle-monitor">',
-      '<button class="idle-x" type="button" aria-label="Close">x</button>',
+      '<button class="idle-x" type="button" aria-label="Reload">x</button>',
       '<p class="idle-line">are you ok?</p>',
       '<p class="idle-line">do you need help?</p>',
-      '<button class="idle-resume" type="button">resume</button>',
+      '<button class="idle-resume" type="button">reload</button>',
       '</div>'
     ].join('');
     document.body.appendChild(overlay);

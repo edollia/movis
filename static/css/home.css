@@ -47,10 +47,11 @@
 .bar input[type=submit]:active{transform:translateY(1px);background:#afffaf;color:#000}
 
 .boot{
-  position:fixed;inset:0;z-index:1200;display:grid;place-items:center;
+  position:fixed;inset:0;z-index:1200;display:none;place-items:center;
   background:radial-gradient(circle at 50% 50%,#020802 0,#000 64%);
   transition:opacity .9s ease,visibility .9s ease;
 }
+.booting .boot{display:grid}
 .boot::before{
   content:"";position:absolute;inset:0;pointer-events:none;
   background:

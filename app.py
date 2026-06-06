@@ -5,7 +5,9 @@ GoonToThis - PlayIMDb link implementation.
 import json
 import os
 import re
-from urllib.parse import quote
+import threading
+import time
+from urllib.parse import quote, urlencode
 
 import requests
 from flask import Flask, abort, redirect, render_template, request, send_from_directory
@@ -14,6 +16,10 @@ app = Flask(__name__)
 
 PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
 CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
+CACHE_SCHEMA_VERSION = 1
+CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", str(60 * 60 * 24)))
+CACHE_MAX_ENTRIES = int(os.environ.get("CACHE_MAX_ENTRIES", "500"))
+MAX_QUERY_LENGTH = 120
 IMDB_ID_RE = re.compile(r"^tt\d+$")
 
 SITE_NAME = "GoonToThis"
@@ -23,17 +29,70 @@ SITE_DESCRIPTION = "Search a movie or show, then tap a card to go right to it."
 
 GOATCOUNTER_SRC = "//gc.zgo.at/count.js"
 GOATCOUNTER_SITE = "https://goon2this.goatcounter.com/count"
+OG_IMAGE = f"{SITE_URL}/static/og-image.png"
+
+
+def now_ts():
+    return int(time.time())
+
+
+def cache_entry(value, timestamp=None):
+    timestamp = timestamp or now_ts()
+    return {
+        "value": value,
+        "created_at": timestamp,
+        "last_accessed_at": timestamp,
+        "expires_at": timestamp + CACHE_TTL_SECONDS,
+    }
+
+
+def normalize_cache(raw):
+    if not isinstance(raw, dict):
+        return {"version": CACHE_SCHEMA_VERSION, "entries": {}}
+
+    if raw.get("version") == CACHE_SCHEMA_VERSION and isinstance(raw.get("entries"), dict):
+        return raw
+
+    timestamp = now_ts()
+    entries = {}
+    for key, value in raw.items():
+        if key.startswith("s_") and isinstance(value, list):
+            entries[key] = cache_entry(value, timestamp)
+
+    return {"version": CACHE_SCHEMA_VERSION, "entries": entries}
 
 
 def load_cache():
     try:
         with open(CACHE_PATH) as fh:
-            return json.load(fh)
+            return normalize_cache(json.load(fh))
     except Exception:
-        return {}
+        return normalize_cache({})
 
 
 cache = load_cache()
+cache_lock = threading.RLock()
+
+
+def prune_cache():
+    entries = cache.setdefault("entries", {})
+    timestamp = now_ts()
+    expired = [
+        key for key, entry in entries.items()
+        if not isinstance(entry, dict) or entry.get("expires_at", 0) <= timestamp
+    ]
+    for key in expired:
+        entries.pop(key, None)
+
+    if len(entries) <= CACHE_MAX_ENTRIES:
+        return
+
+    ordered = sorted(
+        entries.items(),
+        key=lambda item: item[1].get("last_accessed_at", item[1].get("created_at", 0)),
+    )
+    for key, _entry in ordered[:len(entries) - CACHE_MAX_ENTRIES]:
+        entries.pop(key, None)
 
 
 def save_cache():
@@ -44,7 +103,7 @@ def save_cache():
         if directory:
             os.makedirs(directory, exist_ok=True)
         with open(tmp_path, "w") as fh:
-            json.dump(cache, fh)
+            json.dump(cache, fh, separators=(",", ":"))
         os.replace(tmp_path, CACHE_PATH)
     except Exception:
         pass
@@ -59,17 +118,49 @@ def play_url(imdb_id):
 
 
 def with_play_urls(results):
+    hydrated = []
     for item in results:
-        item["play_url"] = play_url(item["id"])
-    return results
+        imdb_id = item.get("id", "")
+        if not valid_imdb_id(imdb_id):
+            continue
+        hydrated.append({**item, "play_url": play_url(imdb_id)})
+    return hydrated
+
+
+def search_cache_key(query):
+    return "s_" + query.lower().strip()
+
+
+def cached_search(key):
+    with cache_lock:
+        prune_cache()
+        entry = cache.setdefault("entries", {}).get(key)
+        if not entry:
+            return None
+        entry["last_accessed_at"] = now_ts()
+        return with_play_urls(entry.get("value", []))
+
+
+def remember_search(key, results):
+    if not results:
+        return
+    with cache_lock:
+        cache.setdefault("entries", {})[key] = cache_entry(results)
+        prune_cache()
+        save_cache()
 
 
 def template_context(**extra):
+    page_title = extra.pop("page_title", SITE_TITLE)
+    page_description = extra.pop("page_description", SITE_DESCRIPTION)
+    canonical_url = extra.pop("canonical_url", f"{SITE_URL}/")
     base = {
         "site_name": SITE_NAME,
-        "site_title": SITE_TITLE,
+        "site_title": page_title,
         "site_url": SITE_URL,
-        "site_description": SITE_DESCRIPTION,
+        "site_description": page_description,
+        "canonical_url": canonical_url,
+        "og_image": extra.pop("og_image", OG_IMAGE),
         "goatcounter_src": GOATCOUNTER_SRC,
         "goatcounter_site": GOATCOUNTER_SITE,
     }
@@ -78,12 +169,16 @@ def template_context(**extra):
 
 
 def search_imdb(query):
-    key = "s_" + query.lower().strip()
-    if key in cache:
-        return with_play_urls(cache[key])
+    normalized_query = query.strip()[:MAX_QUERY_LENGTH]
+    key = search_cache_key(normalized_query)
+    cached = cached_search(key)
+    if cached is not None:
+        return cached
 
-    q = quote(query.strip().lower())
-    ch = q[0] if q else "a"
+    q = quote(normalized_query.lower())
+    ch = normalized_query[0].lower() if normalized_query else "a"
+    if not ch.isalnum():
+        ch = "a"
 
     try:
         res = requests.get(
@@ -94,7 +189,7 @@ def search_imdb(query):
         res.raise_for_status()
         data = res.json()
     except Exception as e:
-        print(f"[search] {e}")
+        app.logger.warning("Search failed for %r: %s", normalized_query, e)
         return []
 
     results = []
@@ -115,11 +210,9 @@ def search_imdb(query):
             "play_url": play_url(imdb_id),
         })
 
-    if results:
-        cache[key] = with_play_urls(results)
-        save_cache()
+    remember_search(key, results)
 
-    return results
+    return with_play_urls(results)
 
 
 @app.route("/")
@@ -174,13 +267,23 @@ def sitemap_xml():
 
 @app.route("/search")
 def search():
-    q = request.args.get("q", "").strip()
+    q = request.args.get("q", "").strip()[:MAX_QUERY_LENGTH]
     if not q:
         return redirect("/")
 
+    query_path = "/search?" + urlencode({"q": q})
+    page_title = f'"{q}" results - {SITE_NAME}'
+    page_description = f'Search results for "{q}". Swipe the cards and launch a movie or show fast.'
+
     return render_template(
         "results.html",
-        **template_context(q=q, results=search_imdb(q)),
+        **template_context(
+            q=q,
+            results=search_imdb(q),
+            page_title=page_title,
+            page_description=page_description,
+            canonical_url=f"{SITE_URL}{query_path}",
+        ),
     )
 
 
