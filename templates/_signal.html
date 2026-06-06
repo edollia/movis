@@ -1,0 +1,6 @@
+{% if settings.show_signal_support %}
+  <div class="signal" data-signal>
+    <span class="signal-item signal-online" data-glow="signal: online">signal: online</span>
+    <a class="signal-item signal-support" href="{{ settings.support_url }}" target="_blank" rel="noopener noreferrer" data-tap-sound="/cut2.mp3" data-glow="{{ settings.support_label }}: {{ settings.support_handle }}">{{ settings.support_label }}: <strong>{{ settings.support_handle }}</strong></a>
+  </div>
+{% endif %}

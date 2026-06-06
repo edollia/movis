@@ -270,8 +270,301 @@
     });
   }
 
+  function initOwnerPanel(){
+    var config=window.MOVIS_ADMIN_CONFIG || {};
+    var client=null;
+    var panel=null;
+    var statusEl=null;
+    var token='';
+    var tapCount=0;
+    var tapTimer=0;
+
+    if(!config.enabled || !config.supabaseUrl || !config.supabaseAnonKey)return;
+
+    function cleanText(value){
+      return (value || '').toString();
+    }
+
+    function setStatus(message,isError){
+      if(!statusEl)return;
+      statusEl.textContent=message || '';
+      statusEl.classList.toggle('is-error',!!isError);
+    }
+
+    function setBusy(button,busy){
+      if(!button)return;
+      button.disabled=!!busy;
+      button.classList.toggle('is-busy',!!busy);
+    }
+
+    function getClient(){
+      if(client)return client;
+      if(!window.supabase || !window.supabase.createClient)return null;
+      client=window.supabase.createClient(config.supabaseUrl,config.supabaseAnonKey);
+      return client;
+    }
+
+    function showLogin(){
+      if(!panel)return;
+      panel.querySelector('[data-admin-login]').hidden=false;
+      panel.querySelector('[data-admin-settings]').hidden=true;
+    }
+
+    function showSettings(){
+      if(!panel)return;
+      panel.querySelector('[data-admin-login]').hidden=true;
+      panel.querySelector('[data-admin-settings]').hidden=false;
+    }
+
+    function adminFetch(path,options){
+      options=options || {};
+      options.headers=options.headers || {};
+      options.headers.Authorization='Bearer '+token;
+      if(options.body && !options.headers['Content-Type'])options.headers['Content-Type']='application/json';
+      return fetch(path,options).then(function(response){
+        return response.json().catch(function(){ return {}; }).then(function(data){
+          if(!response.ok || data.ok===false){
+            throw new Error(data.error || data.message || 'Request failed.');
+          }
+          return data;
+        });
+      });
+    }
+
+    function fillSettings(data){
+      var form=panel.querySelector('[data-admin-settings]');
+      var settings=data.settings || {};
+      form.elements.show_loading_screen.checked=!!settings.show_loading_screen;
+      form.elements.loading_line_1.value=cleanText(settings.loading_line_1);
+      form.elements.loading_line_2.value=cleanText(settings.loading_line_2);
+      form.elements.show_signal_support.checked=!!settings.show_signal_support;
+      form.elements.support_label.value=cleanText(settings.support_label);
+      form.elements.support_handle.value=cleanText(settings.support_handle);
+      form.elements.support_url.value=cleanText(settings.support_url);
+      var owner=panel.querySelector('[data-admin-owner]');
+      if(owner)owner.textContent=data.email ? 'signed in as '+data.email : 'signed in';
+      var restart=panel.querySelector('[data-admin-restart]');
+      if(restart)restart.disabled=!data.restart_configured;
+      showSettings();
+      setStatus('');
+    }
+
+    function readSettings(){
+      var form=panel.querySelector('[data-admin-settings]');
+      return {
+        show_loading_screen:form.elements.show_loading_screen.checked,
+        loading_line_1:form.elements.loading_line_1.value,
+        loading_line_2:form.elements.loading_line_2.value,
+        show_signal_support:form.elements.show_signal_support.checked,
+        support_label:form.elements.support_label.value,
+        support_handle:form.elements.support_handle.value,
+        support_url:form.elements.support_url.value
+      };
+    }
+
+    function loadSettings(){
+      setStatus('checking access...');
+      return adminFetch('/api/admin/settings',{method:'GET'})
+        .then(fillSettings)
+        .catch(function(error){
+          token='';
+          showLogin();
+          setStatus(error.message,true);
+        });
+    }
+
+    function bootstrapSession(){
+      var supa=getClient();
+      if(!supa){
+        showLogin();
+        setStatus('Supabase client did not load.',true);
+        return;
+      }
+      supa.auth.getSession().then(function(result){
+        var session=result && result.data ? result.data.session : null;
+        if(!session){
+          showLogin();
+          setStatus('');
+          return;
+        }
+        token=session.access_token;
+        loadSettings();
+      });
+    }
+
+    function ensurePanel(){
+      if(panel)return panel;
+      panel=document.createElement('div');
+      panel.className='admin-panel';
+      panel.setAttribute('data-admin-panel','');
+      panel.hidden=true;
+      panel.innerHTML=[
+        '<div class="admin-shell" role="dialog" aria-modal="true" aria-label="Owner controls">',
+        '<button class="admin-close" type="button" data-admin-close aria-label="Close">x</button>',
+        '<p class="admin-kicker">owner panel</p>',
+        '<h2>settings</h2>',
+        '<form class="admin-login" data-admin-login>',
+        '<label>email<input type="email" name="email" autocomplete="email" required></label>',
+        '<label>password<input type="password" name="password" autocomplete="current-password" required></label>',
+        '<button type="submit">sign in</button>',
+        '</form>',
+        '<form class="admin-settings" data-admin-settings hidden>',
+        '<p class="admin-owner" data-admin-owner></p>',
+        '<label class="admin-toggle"><input type="checkbox" name="show_loading_screen"><span>loading screen</span></label>',
+        '<label>loading line 1<input type="text" name="loading_line_1" maxlength="80"></label>',
+        '<label>loading line 2<input type="text" name="loading_line_2" maxlength="80"></label>',
+        '<label class="admin-toggle"><input type="checkbox" name="show_signal_support"><span>signal / support badge</span></label>',
+        '<label>support label<input type="text" name="support_label" maxlength="28"></label>',
+        '<label>support handle<input type="text" name="support_handle" maxlength="42"></label>',
+        '<label>support url<input type="url" name="support_url" maxlength="300"></label>',
+        '<div class="admin-actions">',
+        '<button type="submit" data-admin-save>save</button>',
+        '<button type="button" data-admin-cache>clear cache</button>',
+        '<button type="button" data-admin-restart>restart server</button>',
+        '<button type="button" data-admin-logout>logout</button>',
+        '</div>',
+        '</form>',
+        '<p class="admin-status" data-admin-status></p>',
+        '</div>'
+      ].join('');
+      document.body.appendChild(panel);
+      statusEl=panel.querySelector('[data-admin-status]');
+
+      panel.addEventListener('click',function(event){
+        if(event.target===panel || event.target.closest('[data-admin-close]'))closePanel();
+      });
+
+      panel.querySelector('[data-admin-login]').addEventListener('submit',function(event){
+        event.preventDefault();
+        var supa=getClient();
+        var button=event.target.querySelector('button[type="submit"]');
+        if(!supa){
+          setStatus('Supabase client did not load.',true);
+          return;
+        }
+        setBusy(button,true);
+        setStatus('signing in...');
+        supa.auth.signInWithPassword({
+          email:event.target.elements.email.value,
+          password:event.target.elements.password.value
+        }).then(function(result){
+          setBusy(button,false);
+          if(result.error){
+            setStatus(result.error.message || 'Could not sign in.',true);
+            return;
+          }
+          token=result.data.session.access_token;
+          event.target.elements.password.value='';
+          loadSettings();
+        });
+      });
+
+      panel.querySelector('[data-admin-settings]').addEventListener('submit',function(event){
+        event.preventDefault();
+        var button=panel.querySelector('[data-admin-save]');
+        setBusy(button,true);
+        setStatus('saving...');
+        adminFetch('/api/admin/settings',{
+          method:'POST',
+          body:JSON.stringify(readSettings())
+        }).then(function(){
+          setBusy(button,false);
+          setStatus('saved. reloading...');
+          setTimeout(function(){ window.location.reload(); },650);
+        }).catch(function(error){
+          setBusy(button,false);
+          setStatus(error.message,true);
+        });
+      });
+
+      panel.querySelector('[data-admin-cache]').addEventListener('click',function(event){
+        var button=event.currentTarget;
+        setBusy(button,true);
+        setStatus('clearing cache...');
+        adminFetch('/api/admin/cache/clear',{method:'POST'})
+          .then(function(data){
+            setBusy(button,false);
+            setStatus('cache cleared: '+data.cleared+' entries');
+          })
+          .catch(function(error){
+            setBusy(button,false);
+            setStatus(error.message,true);
+          });
+      });
+
+      panel.querySelector('[data-admin-restart]').addEventListener('click',function(event){
+        var button=event.currentTarget;
+        setBusy(button,true);
+        setStatus('requesting restart...');
+        adminFetch('/api/admin/server/restart',{method:'POST'})
+          .then(function(data){
+            setBusy(button,false);
+            setStatus(data.message || 'restart requested');
+          })
+          .catch(function(error){
+            setBusy(button,false);
+            setStatus(error.message,true);
+          });
+      });
+
+      panel.querySelector('[data-admin-logout]').addEventListener('click',function(){
+        var supa=getClient();
+        token='';
+        if(supa)supa.auth.signOut();
+        showLogin();
+        setStatus('signed out');
+      });
+
+      return panel;
+    }
+
+    function openPanel(){
+      ensurePanel();
+      panel.hidden=false;
+      document.body.classList.add('admin-open');
+      bootstrapSession();
+      setTimeout(function(){
+        var first=panel.querySelector('input,button');
+        if(first)first.focus({preventScroll:true});
+      },0);
+    }
+
+    function closePanel(){
+      if(!panel)return;
+      panel.hidden=true;
+      document.body.classList.remove('admin-open');
+    }
+
+    function isBackgroundTap(target){
+      if(!target || target.nodeType!==1)return false;
+      return !target.closest([
+        'a','button','input','textarea','select','label',
+        '[data-admin-panel]','[data-carousel]','.home-search','.results-search',
+        '.signal','.idle-check','.movie-card','.deck-controls'
+      ].join(','));
+    }
+
+    document.addEventListener('pointerup',function(event){
+      if(event.pointerType==='mouse' && event.button!==0)return;
+      if(!isBackgroundTap(event.target))return;
+      tapCount++;
+      clearTimeout(tapTimer);
+      if(tapCount>=5){
+        tapCount=0;
+        openPanel();
+        return;
+      }
+      tapTimer=setTimeout(function(){ tapCount=0; },2200);
+    });
+
+    document.addEventListener('keydown',function(event){
+      if(event.key==='Escape')closePanel();
+    });
+  }
+
   cycleSignal();
   bindTapSounds();
   lockPageZoom();
   initCarousels();
+  initOwnerPanel();
 })();

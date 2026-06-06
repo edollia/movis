@@ -8,16 +8,23 @@
   var raf=0, lastFrame=0, msgTimer=0, idleTimer=0;
   var IDLE_MS=180000;
 
-  if(document.body.classList.contains('home')){
+  if(document.body.classList.contains('home') && document.getElementById('boot')){
     document.body.classList.add('booting','ui-hidden');
   }
 
   function boot(){
     var bootEl=document.getElementById('boot');
-    if(!bootEl){ startMatrix(); revealUi(); return; }
+    if(!bootEl){
+      document.body.classList.remove('booting','ui-hidden');
+      startMatrix();
+      revealUi();
+      return;
+    }
+    var firstLine=bootEl.getAttribute('data-line-one') || 'Knock, knock, Neo.';
+    var secondLine=bootEl.getAttribute('data-line-two') || 'Have you gooned today?';
     var lines=[
-      {el:document.getElementById('boot-line-1'), text:'Knock, knock, Neo.'},
-      {el:document.getElementById('boot-line-2'), text:'Have you gooned today?', pauseAfter:'Have you gooned today'}
+      {el:document.getElementById('boot-line-1'), text:firstLine},
+      {el:document.getElementById('boot-line-2'), text:secondLine, pauseAfter:secondLine.replace(/[?.!]+$/,'')}
     ];
     var lineIndex=0, charIndex=0;
 
