@@ -20,22 +20,20 @@
         <div class="deck-head">
           <div class="deck-controls" aria-label="Carousel controls">
             <button type="button" class="deck-btn" data-carousel-prev aria-label="Previous result">‹</button>
-            <span class="deck-count" data-carousel-count>1 / {{ results|length }}</span>
+            <span class="deck-count" data-carousel-count aria-live="polite">1 / {{ results|length }}</span>
             <button type="button" class="deck-btn" data-carousel-next aria-label="Next result">›</button>
           </div>
         </div>
         <div class="deck-stage" data-deck-stage>
-          <button type="button" class="deck-hotzone deck-hotzone-prev" data-carousel-hit-prev aria-hidden="true" tabindex="-1"></button>
-          <button type="button" class="deck-hotzone deck-hotzone-next" data-carousel-hit-next aria-hidden="true" tabindex="-1"></button>
           <ol class="carousel-track" data-carousel-track tabindex="0">
           {% for m in results %}
             <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-movie-card>
               <div class="movie-face movie-front">
-                <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}"></a>
+                <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}" draggable="false"></a>
                 <div class="poster-stage{% if m.poster %} has-poster poster-loading{% endif %}">
                   {% if m.poster %}
-                    <img src="{{ m.poster }}" alt="{{ m.title }} poster" loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async"{% if loop.first %} fetchpriority="high"{% endif %} data-poster-img>
+                    <img src="{{ m.poster }}" alt="{{ m.title }} poster" loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}" decoding="async" draggable="false"{% if loop.first %} fetchpriority="high"{% endif %} data-poster-img>
                   {% endif %}
                   <div class="poster-fallback">film</div>
                   <div class="pick-rank">#{{ "%02d"|format(loop.index) }}</div>

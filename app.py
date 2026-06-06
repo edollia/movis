@@ -389,8 +389,6 @@ def cached_search(key):
 
 
 def remember_search(key, results):
-    if not results:
-        return
     with cache_lock:
         cache.setdefault("entries", {})[key] = cache_entry(results)
         prune_cache()

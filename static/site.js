@@ -113,8 +113,6 @@
       var slides=Array.prototype.slice.call(carousel.querySelectorAll('[data-slide]'));
       var prev=carousel.querySelector('[data-carousel-prev]');
       var next=carousel.querySelector('[data-carousel-next]');
-      var hitPrev=carousel.querySelector('[data-carousel-hit-prev]');
-      var hitNext=carousel.querySelector('[data-carousel-hit-next]');
       var count=carousel.querySelector('[data-carousel-count]');
       var activeIndex=0;
       var dragStartX=0;
@@ -128,15 +126,24 @@
       var dragMetrics=null;
       var dragging=false;
       var dragMoved=false;
+      var tapMoved=false;
+      var suppressClickUntil=0;
       var resizeTimer=0;
       var wheelIdleTimer=0;
       var wheelAccum=0;
+      var wheelFrame=0;
+      var pendingWheelSteps=0;
       var rushTimer=0;
+      var metricsCache=null;
+      var layoutFrame=0;
+      var queuedProgress=0;
+      var queuedMotionLevel=0;
       var launching=false;
 
       if(!track || !slides.length)return;
 
-      function deckMetrics(){
+      function deckMetrics(force){
+        if(metricsCache && !force)return metricsCache;
         var stage=carousel.querySelector('[data-deck-stage]') || track;
         var stageWidth=stage.clientWidth || track.clientWidth || window.innerWidth;
         var card=slides[0].querySelector('[data-movie-card]');
@@ -146,7 +153,8 @@
         var divisor=isMobile ? 3.4 : 2.55;
         var side=Math.min(cardWidth*spread,Math.max(isMobile ? 54 : 78,(stageWidth-cardWidth)/divisor));
         var swipeUnit=Math.max(side*1.22,cardWidth*(isMobile ? .42 : .38));
-        return {side:side,cardWidth:cardWidth,swipeUnit:swipeUnit};
+        metricsCache={side:side,cardWidth:cardWidth,swipeUnit:swipeUnit};
+        return metricsCache;
       }
 
       function applySlidePosition(slide,delta,metrics,progress,motionLevel){
@@ -160,9 +168,7 @@
         var rotateMap=[0,7,11,14,16];
         var capped=Math.min(abs,4);
         var motion=clamp(Math.max(Math.abs(progress || 0)*.7,motionLevel || 0),0,1);
-        var baseFold=abs<.04 ? 0 : -(1.05+Math.min(abs,3)*.58);
         var spreadLift=Math.min(abs,3)*(.12+motion*.22);
-        var fold=baseFold-(motion*Math.min(abs,2.8)*1.65);
         var scale=sampleCurve(scaleMap,capped)-motion*Math.min(abs,2.8)*.018;
         var y=sampleCurve(yMap,capped)+motion*Math.min(abs,3)*7;
         var depth=-76*capped-motion*Math.min(abs,3)*44;
@@ -181,7 +187,6 @@
         slide.style.setProperty('--deck-x',px(sign*metrics.side*(sampleCurve(offsetMap,capped)+spreadLift)));
         slide.style.setProperty('--deck-y',px(y));
         slide.style.setProperty('--deck-r',(sign*-sampleCurve(rotateMap,capped))+'deg');
-        slide.style.setProperty('--deck-fold',fold+'deg');
         slide.style.setProperty('--deck-s',Math.max(.56,scale));
         slide.style.setProperty('--deck-o',sampleCurve(opacityMap,capped));
         slide.style.setProperty('--deck-blur',px(sampleCurve(blurMap,capped)));
@@ -191,8 +196,8 @@
         slide.classList.toggle('is-far',abs>3.35);
       }
 
-      function applyDeckLayout(index,progress,motionLevel){
-        var metrics=deckMetrics();
+      function applyDeckLayout(index,progress,motionLevel,metricsOverride){
+        var metrics=metricsOverride || deckMetrics();
         slides.forEach(function(slide,i){
           var card=slide.querySelector('[data-movie-card]');
           var isActive=i===index;
@@ -215,9 +220,35 @@
         },220);
       }
 
+      function cancelQueuedLayout(){
+        if(!layoutFrame)return;
+        cancelAnimationFrame(layoutFrame);
+        layoutFrame=0;
+      }
+
+      function cancelQueuedWheel(){
+        if(!wheelFrame)return;
+        cancelAnimationFrame(wheelFrame);
+        wheelFrame=0;
+        pendingWheelSteps=0;
+      }
+
+      function queueDeckLayout(progress,motionLevel){
+        queuedProgress=progress;
+        queuedMotionLevel=motionLevel;
+        dragProgress=progress;
+        if(layoutFrame)return;
+        layoutFrame=requestAnimationFrame(function(){
+          layoutFrame=0;
+          applyDeckLayout(activeIndex,queuedProgress,queuedMotionLevel,dragMetrics || deckMetrics());
+        });
+      }
+
       function setActive(index,focusTrack,fast){
         var nextIndex=clamp(index,0,slides.length-1);
-        if(nextIndex!==activeIndex || fast)markRushing();
+        var changed=nextIndex!==activeIndex;
+        cancelQueuedLayout();
+        if(changed)markRushing();
         activeIndex=nextIndex;
         dragProgress=0;
         carousel.classList.remove('is-dragging');
@@ -225,8 +256,6 @@
         if(count)count.textContent=(activeIndex+1)+' / '+slides.length;
         if(prev)prev.disabled=activeIndex===0;
         if(next)next.disabled=activeIndex===slides.length-1;
-        if(hitPrev)hitPrev.disabled=activeIndex===0;
-        if(hitNext)hitNext.disabled=activeIndex===slides.length-1;
         if(focusTrack){
           try{
             track.focus({preventScroll:true});
@@ -251,6 +280,7 @@
       function launchCard(card,href){
         if(launching)return;
         launching=true;
+        suppressClickUntil=Date.now()+900;
         carousel.classList.add('is-launching-deck');
         if(card)card.classList.add('is-launching');
 
@@ -281,8 +311,8 @@
         }
       });
 
-      if(prev)prev.addEventListener('click',function(){ scrollToIndex(activeIndex-1,true); });
-      if(next)next.addEventListener('click',function(){ scrollToIndex(activeIndex+1,true); });
+      if(prev)prev.addEventListener('click',function(){ selectIndex(activeIndex-1,true); });
+      if(next)next.addEventListener('click',function(){ selectIndex(activeIndex+1,true); });
 
       carousel.querySelectorAll('[data-movie-card]').forEach(function(card){
         syncCardControls(card);
@@ -293,13 +323,13 @@
           var slide=link.closest('[data-slide]');
           var index=slides.indexOf(slide);
           var card=link.closest('[data-movie-card]');
+          if(Date.now()<suppressClickUntil || dragMoved){
+            event.preventDefault();
+            return;
+          }
           if(index!==activeIndex){
             event.preventDefault();
             selectIndex(index,true);
-            return;
-          }
-          if(dragMoved){
-            event.preventDefault();
             return;
           }
           if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
@@ -308,10 +338,17 @@
         });
       });
 
+      track.addEventListener('click',function(event){
+        if(Date.now()<suppressClickUntil || dragMoved){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      },true);
+
       slides.forEach(function(slide,i){
         slide.addEventListener('click',function(event){
           if(event.target.closest('[data-card-hit]'))return;
-          if(i===activeIndex || dragMoved)return;
+          if(i===activeIndex || dragMoved || Date.now()<suppressClickUntil)return;
           event.preventDefault();
           selectIndex(i,true);
         });
@@ -323,15 +360,18 @@
       }
 
       function beginDrag(event){
+        if(event.isPrimary===false)return false;
         if(event.button && event.button!==0)return false;
         if(launching)return false;
+        cancelQueuedWheel();
         dragging=true;
         dragMoved=false;
+        tapMoved=false;
         dragProgress=0;
         dragVelocityX=0;
         dragPointerId=event.pointerId;
         dragCaptureTarget=event.currentTarget || track;
-        dragMetrics=deckMetrics();
+        dragMetrics=deckMetrics(true);
         dragStartX=event.clientX;
         dragStartY=event.clientY;
         dragLastX=event.clientX;
@@ -356,7 +396,8 @@
         dragLastX=event.clientX;
         dragLastTime=now;
 
-        if(!dragMoved && Math.abs(dx)>6 && Math.abs(dx)>Math.abs(dy)*1.05){
+        if(!tapMoved && Math.sqrt(dx*dx+dy*dy)>7)tapMoved=true;
+        if(!dragMoved && Math.abs(dx)>9 && Math.abs(dx)>Math.abs(dy)*1.14){
           dragMoved=true;
           carousel.classList.add('is-dragging');
           carousel.classList.remove('is-rushing');
@@ -367,8 +408,7 @@
         if((activeIndex===0 && progress>0) || (activeIndex===slides.length-1 && progress<0)){
           progress*=.24;
         }
-        dragProgress=progress;
-        applyDeckLayout(activeIndex,dragProgress,.72);
+        queueDeckLayout(progress,.72);
       }
 
       function finishDrag(event){
@@ -381,14 +421,18 @@
         var maxLeap=window.matchMedia && window.matchMedia('(max-width: 760px)').matches ? 4 : 5;
         var steps=0;
         var moved=dragMoved;
+        var movedEnough=tapMoved || moved;
 
         dragging=false;
+        cancelQueuedLayout();
         releasePointer(event);
         dragPointerId=null;
         dragCaptureTarget=null;
         dragMetrics=null;
         carousel.classList.remove('is-dragging');
 
+        tapMoved=false;
+        if(movedEnough)suppressClickUntil=Date.now()+520;
         if(!moved){
           dragProgress=0;
           dragVelocityX=0;
@@ -407,8 +451,11 @@
 
       function cancelDrag(event){
         if(dragPointerId!==null && event.pointerId!==dragPointerId)return;
+        var movedEnough=tapMoved || dragMoved;
         dragging=false;
+        cancelQueuedLayout();
         dragMoved=false;
+        tapMoved=false;
         dragProgress=0;
         dragVelocityX=0;
         dragPointerId=null;
@@ -416,6 +463,7 @@
         releasePointer(event);
         dragCaptureTarget=null;
         carousel.classList.remove('is-dragging');
+        if(movedEnough)suppressClickUntil=Date.now()+520;
         applyDeckLayout(activeIndex,0,0);
       }
 
@@ -425,32 +473,15 @@
         surface.addEventListener('pointermove',moveDrag,{passive:false});
         surface.addEventListener('pointerup',finishDrag);
         surface.addEventListener('pointercancel',cancelDrag);
-      }
-
-      function bindHotzone(zone,direction){
-        if(!zone)return;
-        zone.addEventListener('pointerdown',function(event){
-          if(zone.disabled)return;
-          beginDrag(event);
-          event.preventDefault();
-        });
-        zone.addEventListener('pointermove',moveDrag,{passive:false});
-        zone.addEventListener('pointerup',function(event){
-          var moved=finishDrag(event);
-          event.preventDefault();
-          if(moved===false && !zone.disabled && !launching){
-            selectIndex(activeIndex+direction,true);
-          }
-        });
-        zone.addEventListener('pointercancel',cancelDrag);
-        zone.addEventListener('click',function(event){
-          event.preventDefault();
+        surface.addEventListener('lostpointercapture',function(event){
+          if(dragging && dragPointerId===event.pointerId)cancelDrag(event);
         });
       }
 
       bindPointerSurface(track);
-      bindHotzone(hitPrev,-1);
-      bindHotzone(hitNext,1);
+      track.addEventListener('dragstart',function(event){
+        event.preventDefault();
+      });
 
       function normalizedWheel(event){
         var dx=event.deltaX;
@@ -467,6 +498,18 @@
           delta:Math.abs(dx)>Math.abs(dy) ? dx : dy,
           horizontal:Math.abs(dx)>Math.max(8,Math.abs(dy)*.62)
         };
+      }
+
+      function queueWheelSteps(steps){
+        pendingWheelSteps=clamp(pendingWheelSteps+steps,-6,6);
+        if(wheelFrame)return;
+        wheelFrame=requestAnimationFrame(function(){
+          var queued=pendingWheelSteps;
+          wheelFrame=0;
+          pendingWheelSteps=0;
+          if(!queued)return;
+          selectIndex(activeIndex+queued,Math.abs(queued)>1);
+        });
       }
 
       function wheelTargetAllowed(target){
@@ -495,7 +538,7 @@
         if(!steps)return;
         steps=clamp(steps,-6,6);
         wheelAccum-=steps*threshold;
-        selectIndex(activeIndex+steps,true);
+        queueWheelSteps(steps);
       }
 
       carousel.addEventListener('wheel',function(event){
@@ -509,7 +552,10 @@
 
       window.addEventListener('resize',function(){
         clearTimeout(resizeTimer);
-        resizeTimer=setTimeout(function(){ setActive(activeIndex,false); },120);
+        resizeTimer=setTimeout(function(){
+          metricsCache=null;
+          setActive(activeIndex,false);
+        },120);
       });
 
       setActive(0,false);
