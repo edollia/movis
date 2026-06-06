@@ -35,34 +35,23 @@
     });
   }
 
-  function toggleControls(root, enabled){
-    if(!root)return;
-    root.querySelectorAll('a,button,input,select,textarea').forEach(function(el){
-      if(enabled){
+  function lockPageZoom(){
+    document.addEventListener('gesturestart',function(event){ event.preventDefault(); },{passive:false});
+    document.addEventListener('gesturechange',function(event){ event.preventDefault(); },{passive:false});
+    document.addEventListener('touchmove',function(event){
+      if(event.touches && event.touches.length>1)event.preventDefault();
+    },{passive:false});
+  }
+
+  function syncCardControls(card){
+    var active=card.classList.contains('is-active');
+    card.querySelectorAll('[data-card-hit]').forEach(function(el){
+      if(active){
         el.removeAttribute('tabindex');
       } else {
         el.setAttribute('tabindex','-1');
       }
     });
-  }
-
-  function syncCardControls(card){
-    var active=card.classList.contains('is-active');
-    var flipped=card.classList.contains('is-flipped');
-    var front=card.querySelector('.movie-front');
-    var back=card.querySelector('.movie-back');
-    if(front)front.setAttribute('aria-hidden',active && flipped ? 'true' : 'false');
-    if(back)back.setAttribute('aria-hidden',active && flipped ? 'false' : 'true');
-    toggleControls(front,active && !flipped);
-    toggleControls(back,active && flipped);
-  }
-
-  function setCardFlipped(card, flipped){
-    card.classList.toggle('is-flipped',flipped);
-    card.querySelectorAll('[data-flip]').forEach(function(btn){
-      btn.setAttribute('aria-pressed',flipped ? 'true' : 'false');
-    });
-    syncCardControls(card);
   }
 
   function clamp(value,min,max){
@@ -86,13 +75,15 @@
       var dragging=false;
       var dragMoved=false;
       var resizeTimer=0;
+      var wheelTimer=0;
+      var wheelLocked=false;
 
       if(!track || !slides.length)return;
 
       function deckMetrics(){
         var stage=carousel.querySelector('[data-deck-stage]') || track;
         var stageWidth=stage.clientWidth || track.clientWidth || window.innerWidth;
-        var card=slides[0].querySelector('[data-flip-card]');
+        var card=slides[0].querySelector('[data-movie-card]');
         var cardWidth=card ? card.getBoundingClientRect().width : 360;
         var isMobile=window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
         var spread=isMobile ? .34 : .48;
@@ -128,7 +119,7 @@
         activeIndex=clamp(index,0,slides.length-1);
         var metrics=deckMetrics();
         slides.forEach(function(slide,i){
-          var card=slide.querySelector('[data-flip-card]');
+          var card=slide.querySelector('[data-movie-card]');
           var isActive=i===activeIndex;
           var delta=i-activeIndex;
           slide.classList.toggle('is-active-slide',isActive);
@@ -136,7 +127,6 @@
           applySlidePosition(slide,delta,metrics);
           if(card){
             card.classList.toggle('is-active',isActive);
-            if(!isActive)setCardFlipped(card,false);
             syncCardControls(card);
           }
         });
@@ -154,6 +144,10 @@
 
       function scrollToIndex(index){
         setActive(index,true);
+      }
+
+      function settleDeck(){
+        setActive(activeIndex,false);
       }
 
       track.addEventListener('keydown',function(event){
@@ -175,24 +169,15 @@
       if(prev)prev.addEventListener('click',function(){ scrollToIndex(activeIndex-1); });
       if(next)next.addEventListener('click',function(){ scrollToIndex(activeIndex+1); });
 
-      carousel.querySelectorAll('[data-flip-card]').forEach(function(card){
-        setCardFlipped(card,false);
-      });
-
-      carousel.querySelectorAll('[data-flip]').forEach(function(btn){
-        btn.addEventListener('click',function(event){
-          event.preventDefault();
-          event.stopPropagation();
-          var card=btn.closest('[data-flip-card]');
-          if(card)setCardFlipped(card,!card.classList.contains('is-flipped'));
-        });
+      carousel.querySelectorAll('[data-movie-card]').forEach(function(card){
+        syncCardControls(card);
       });
 
       carousel.querySelectorAll('[data-card-hit]').forEach(function(link){
         link.addEventListener('click',function(event){
           var slide=link.closest('[data-slide]');
           var index=slides.indexOf(slide);
-          var card=link.closest('[data-flip-card]');
+          var card=link.closest('[data-movie-card]');
           if(index!==activeIndex){
             event.preventDefault();
             scrollToIndex(index);
@@ -208,7 +193,7 @@
 
       slides.forEach(function(slide,i){
         slide.addEventListener('click',function(event){
-          if(event.target.closest('[data-flip]') || event.target.closest('[data-card-hit]'))return;
+          if(event.target.closest('[data-card-hit]'))return;
           if(i===activeIndex || dragMoved)return;
           event.preventDefault();
           scrollToIndex(i);
@@ -247,17 +232,37 @@
       track.addEventListener('pointerup',endDrag);
       track.addEventListener('pointercancel',function(){ dragging=false; dragMoved=false; });
 
+      track.addEventListener('wheel',function(event){
+        var delta=Math.abs(event.deltaX)>Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+        if(Math.abs(delta)<6)return;
+        event.preventDefault();
+        if(wheelLocked)return;
+        wheelLocked=true;
+        scrollToIndex(activeIndex+(delta>0 ? 1 : -1));
+        clearTimeout(wheelTimer);
+        wheelTimer=setTimeout(function(){ wheelLocked=false; },360);
+      },{passive:false});
+
       window.addEventListener('resize',function(){
         clearTimeout(resizeTimer);
         resizeTimer=setTimeout(function(){ setActive(activeIndex,false); },120);
       });
 
-      carousel.classList.add('is-ready');
-      setActive(0);
+      setActive(0,false);
+      requestAnimationFrame(function(){
+        settleDeck();
+        carousel.classList.add('is-ready');
+        setTimeout(settleDeck,80);
+      });
+      window.addEventListener('load',function(){
+        settleDeck();
+        setTimeout(settleDeck,120);
+      },{once:true});
     });
   }
 
   cycleSignal();
   bindTapSounds();
+  lockPageZoom();
   initCarousels();
 })();

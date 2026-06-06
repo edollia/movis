@@ -28,7 +28,7 @@
           <ol class="carousel-track" data-carousel-track tabindex="0">
           {% for m in results %}
             <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
-            <article class="movie-card{% if loop.first %} is-active{% endif %}" data-flip-card>
+            <article class="movie-card{% if loop.first %} is-active{% endif %}" data-movie-card>
               <div class="movie-face movie-front">
                 <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}"></a>
                 <div class="poster-stage{% if m.poster %} has-poster{% endif %}">
@@ -41,36 +41,8 @@
                   <div class="poster-glow"></div>
                 </div>
                 <div class="movie-copy">
-                  <p class="pick-label">{% if loop.first %}top signal{% elif loop.index <= 3 %}strong match{% else %}match{% endif %}</p>
                   <h3>{{ m.title }}</h3>
                   <p class="movie-meta">{{ m.year if m.year else "unknown" }}{% if m.type %} · {{ m.type }}{% endif %}</p>
-                </div>
-                <div class="movie-actions">
-                  <button class="flip-btn" type="button" data-flip aria-pressed="false">details</button>
-                </div>
-              </div>
-              <div class="movie-face movie-back" aria-hidden="true">
-                <a class="card-hit" href="{{ m.play_url }}" data-card-hit tabindex="-1" aria-label="Open {{ m.title }}"></a>
-                <div class="back-grid">
-                  <p class="back-kicker">decoded</p>
-                  <h3>{{ m.title }}</h3>
-                  <dl>
-                    <div>
-                      <dt>year</dt>
-                      <dd>{{ m.year if m.year else "unknown" }}</dd>
-                    </div>
-                    <div>
-                      <dt>type</dt>
-                      <dd>{{ m.type if m.type else ("TV" if m.is_tv else "film") }}</dd>
-                    </div>
-                    <div>
-                      <dt>id</dt>
-                      <dd>{{ m.id }}</dd>
-                    </div>
-                  </dl>
-                  <div class="movie-actions back-actions">
-                    <button class="flip-btn" type="button" data-flip aria-pressed="true" tabindex="-1">poster</button>
-                  </div>
                 </div>
               </div>
             </article>
