@@ -94,7 +94,10 @@
         var stageWidth=stage.clientWidth || track.clientWidth || window.innerWidth;
         var card=slides[0].querySelector('[data-flip-card]');
         var cardWidth=card ? card.getBoundingClientRect().width : 360;
-        var side=Math.min(cardWidth*.38,Math.max(54,(stageWidth-cardWidth)/3.4));
+        var isMobile=window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
+        var spread=isMobile ? .34 : .48;
+        var divisor=isMobile ? 3.4 : 2.55;
+        var side=Math.min(cardWidth*spread,Math.max(isMobile ? 54 : 78,(stageWidth-cardWidth)/divisor));
         return {side:side};
       }
 
@@ -140,7 +143,13 @@
         if(count)count.textContent=(activeIndex+1)+' / '+slides.length;
         if(prev)prev.disabled=activeIndex===0;
         if(next)next.disabled=activeIndex===slides.length-1;
-        if(focusTrack)track.focus({preventScroll:true});
+        if(focusTrack){
+          try{
+            track.focus({preventScroll:true});
+          }catch(e){
+            track.focus();
+          }
+        }
       }
 
       function scrollToIndex(index){
@@ -171,21 +180,35 @@
       });
 
       carousel.querySelectorAll('[data-flip]').forEach(function(btn){
-        btn.addEventListener('click',function(){
+        btn.addEventListener('click',function(event){
+          event.preventDefault();
+          event.stopPropagation();
           var card=btn.closest('[data-flip-card]');
           if(card)setCardFlipped(card,!card.classList.contains('is-flipped'));
         });
       });
 
-      carousel.querySelectorAll('[data-launch]').forEach(function(link){
-        link.addEventListener('click',function(){
+      carousel.querySelectorAll('[data-card-hit]').forEach(function(link){
+        link.addEventListener('click',function(event){
+          var slide=link.closest('[data-slide]');
+          var index=slides.indexOf(slide);
           var card=link.closest('[data-flip-card]');
+          if(index!==activeIndex){
+            event.preventDefault();
+            scrollToIndex(index);
+            return;
+          }
+          if(dragMoved){
+            event.preventDefault();
+            return;
+          }
           if(card)card.classList.add('is-launching');
         });
       });
 
       slides.forEach(function(slide,i){
         slide.addEventListener('click',function(event){
+          if(event.target.closest('[data-flip]') || event.target.closest('[data-card-hit]'))return;
           if(i===activeIndex || dragMoved)return;
           event.preventDefault();
           scrollToIndex(i);

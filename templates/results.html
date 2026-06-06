@@ -4,30 +4,20 @@
 
 {% block body %}
   <div class="scan"></div>
-  <header>
-    <form class="srow" action="/search" method="get">
-      <input type="text" name="q" value="{{ q }}" placeholder="search movies &amp; tv shows..." autocomplete="off" spellcheck="false">
-      <button type="submit">[go]</button>
-    </form>
-  </header>
 
   <main class="results-shell">
     <section class="results-intro">
       <div>
-        <p class="eyebrow">signal scan</p>
         <h1>results for <span>"{{ q }}"</span></h1>
       </div>
-      {% if results %}
-        <p class="deck-kicker">{{ results|length }} matches tuned.</p>
-      {% endif %}
+      <form class="srow results-search" action="/search" method="get">
+        <input type="text" name="q" value="{{ q }}" placeholder="search movies &amp; tv shows..." autocomplete="off" spellcheck="false">
+        <button type="submit">[go]</button>
+      </form>
     </section>
     {% if results %}
       <section class="deck" data-carousel aria-label="Search results carousel">
         <div class="deck-head">
-          <div>
-            <p class="deck-label">pick deck</p>
-            <h2>choose your signal</h2>
-          </div>
           <div class="deck-controls" aria-label="Carousel controls">
             <button type="button" class="deck-btn" data-carousel-prev aria-label="Previous result">‹</button>
             <span class="deck-count" data-carousel-count>1 / {{ results|length }}</span>
@@ -37,9 +27,10 @@
         <div class="deck-stage" data-deck-stage>
           <ol class="carousel-track" data-carousel-track tabindex="0">
           {% for m in results %}
-            <li class="carousel-slide" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
+            <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-flip-card>
               <div class="movie-face movie-front">
+                <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}"></a>
                 <div class="poster-stage{% if m.poster %} has-poster{% endif %}">
                   {% if m.poster %}
                     <img src="{{ m.poster }}" alt="{{ m.title }} poster" loading="lazy" onerror="this.hidden=true;this.closest('.poster-stage').classList.add('poster-missing')">
@@ -55,11 +46,11 @@
                   <p class="movie-meta">{{ m.year if m.year else "unknown" }}{% if m.type %} · {{ m.type }}{% endif %}</p>
                 </div>
                 <div class="movie-actions">
-                  <a class="launch-link" href="{{ m.play_url }}" data-launch aria-label="Open {{ m.title }}">open</a>
                   <button class="flip-btn" type="button" data-flip aria-pressed="false">details</button>
                 </div>
               </div>
               <div class="movie-face movie-back" aria-hidden="true">
+                <a class="card-hit" href="{{ m.play_url }}" data-card-hit tabindex="-1" aria-label="Open {{ m.title }}"></a>
                 <div class="back-grid">
                   <p class="back-kicker">decoded</p>
                   <h3>{{ m.title }}</h3>
@@ -78,7 +69,6 @@
                     </div>
                   </dl>
                   <div class="movie-actions back-actions">
-                    <a class="launch-link" href="{{ m.play_url }}" data-launch tabindex="-1" aria-label="Open {{ m.title }}">launch</a>
                     <button class="flip-btn" type="button" data-flip aria-pressed="true" tabindex="-1">poster</button>
                   </div>
                 </div>
