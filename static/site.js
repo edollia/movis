@@ -278,8 +278,11 @@
     var token='';
     var tapCount=0;
     var tapTimer=0;
+    var lastTapAt=0;
 
-    if(!config.enabled || !config.supabaseUrl || !config.supabaseAnonKey)return;
+    function adminConfigured(){
+      return !!(config.enabled && config.supabaseUrl && config.supabaseAnonKey);
+    }
 
     function cleanText(value){
       return (value || '').toString();
@@ -374,6 +377,11 @@
     }
 
     function bootstrapSession(){
+      if(!adminConfigured()){
+        showLogin();
+        setStatus('Supabase is not configured on this server yet.',true);
+        return;
+      }
       var supa=getClient();
       if(!supa){
         showLogin();
@@ -429,6 +437,11 @@
       ].join('');
       document.body.appendChild(panel);
       statusEl=panel.querySelector('[data-admin-status]');
+      if(!adminConfigured()){
+        panel.querySelectorAll('[data-admin-login] input,[data-admin-login] button').forEach(function(el){
+          el.disabled=true;
+        });
+      }
 
       panel.addEventListener('click',function(event){
         if(event.target===panel || event.target.closest('[data-admin-close]'))closePanel();
@@ -544,8 +557,12 @@
       ].join(','));
     }
 
-    document.addEventListener('pointerup',function(event){
-      if(event.pointerType==='mouse' && event.button!==0)return;
+    function registerSecretTap(event){
+      var now=Date.now();
+      if(now-lastTapAt<140)return;
+      lastTapAt=now;
+      if(event && event.type==='pointerup' && event.pointerType==='mouse' && event.button!==0)return;
+      if(event && event.type==='click' && event.button!==0)return;
       if(!isBackgroundTap(event.target))return;
       tapCount++;
       clearTimeout(tapTimer);
@@ -555,7 +572,14 @@
         return;
       }
       tapTimer=setTimeout(function(){ tapCount=0; },2200);
-    });
+    }
+
+    document.addEventListener('pointerup',registerSecretTap);
+    document.addEventListener('click',registerSecretTap);
+    document.addEventListener('touchend',function(event){
+      if(event.touches && event.touches.length)return;
+      registerSecretTap(event);
+    },{passive:true});
 
     document.addEventListener('keydown',function(event){
       if(event.key==='Escape')closePanel();
