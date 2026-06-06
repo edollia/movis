@@ -17,8 +17,6 @@ app = Flask(__name__)
 PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
 CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
 CACHE_SCHEMA_VERSION = 1
-CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", str(60 * 60 * 24)))
-CACHE_MAX_ENTRIES = int(os.environ.get("CACHE_MAX_ENTRIES", "500"))
 MAX_QUERY_LENGTH = 120
 IMDB_ID_RE = re.compile(r"^tt\d+$")
 
@@ -30,6 +28,18 @@ SITE_DESCRIPTION = "Search a movie or show, then tap a card to go right to it."
 GOATCOUNTER_SRC = "//gc.zgo.at/count.js"
 GOATCOUNTER_SITE = "https://goon2this.goatcounter.com/count"
 OG_IMAGE = f"{SITE_URL}/static/og-image.png"
+
+
+def env_int(name, default):
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
+CACHE_TTL_SECONDS = env_int("CACHE_TTL_SECONDS", 60 * 60 * 24)
+CACHE_MAX_ENTRIES = env_int("CACHE_MAX_ENTRIES", 500)
 
 
 def now_ts():
@@ -120,6 +130,8 @@ def play_url(imdb_id):
 def with_play_urls(results):
     hydrated = []
     for item in results:
+        if not isinstance(item, dict):
+            continue
         imdb_id = item.get("id", "")
         if not valid_imdb_id(imdb_id):
             continue
@@ -177,7 +189,7 @@ def search_imdb(query):
 
     q = quote(normalized_query.lower())
     ch = normalized_query[0].lower() if normalized_query else "a"
-    if not ch.isalnum():
+    if not ch.isascii() or not ch.isalnum():
         ch = "a"
 
     try:

@@ -93,6 +93,10 @@ header{
   text-shadow:0 0 12px rgba(0,255,65,.22);
 }
 .deck-controls{
+  display:none;
+  align-items:center;gap:.45rem;flex-shrink:0;
+}
+.deck.is-ready .deck-controls{
   display:flex;align-items:center;gap:.45rem;flex-shrink:0;
 }
 .deck-btn{
@@ -290,6 +294,8 @@ header{
   background:#010701;
   color:#7dff9c;
 }
+.deck:not(.is-ready) .flip-btn{display:none}
+.deck:not(.is-ready) .movie-actions{grid-template-columns:1fr}
 .launch-link:hover,.launch-link:focus-visible,
 .flip-btn:hover,.flip-btn:focus-visible{
   outline:none;

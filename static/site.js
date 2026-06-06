@@ -101,7 +101,11 @@
         var slide=slides[Math.max(0,Math.min(index,slides.length-1))];
         if(!slide)return;
         var left=slide.offsetLeft-((track.clientWidth-slide.offsetWidth)/2);
-        track.scrollTo({left:left,behavior:'smooth'});
+        try{
+          track.scrollTo({left:left,behavior:'smooth'});
+        }catch(e){
+          track.scrollLeft=left;
+        }
         setActive(index);
       }
 
@@ -147,6 +151,7 @@
       });
 
       setActive(0);
+      carousel.classList.add('is-ready');
     });
   }
 
