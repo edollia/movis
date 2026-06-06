@@ -1,6 +1,6 @@
 -- Movis owner panel setup.
 -- 1. Create your Supabase Auth user first.
--- 2. This script grants admin access to UID 35c1a8fa-a819-471d-a4a0-da0d7a4c0a29.
+-- 2. This script grants admin access to UID f7f96a98-985d-402f-9233-9cd0bc0439ce.
 
 create table if not exists public.movis_admins (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -104,7 +104,7 @@ grant insert, update on public.movis_settings to authenticated;
 
 do $$
 declare
-  admin_user_id uuid := '35c1a8fa-a819-471d-a4a0-da0d7a4c0a29';
+  admin_user_id uuid := 'f7f96a98-985d-402f-9233-9cd0bc0439ce';
   admin_email text;
 begin
   select email into admin_email

@@ -51,7 +51,7 @@ SUPABASE_ANON_KEY = (
     or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
     or ""
 )
-DEFAULT_ADMIN_USER_ID = "35c1a8fa-a819-471d-a4a0-da0d7a4c0a29"
+DEFAULT_ADMIN_USER_ID = "f7f96a98-985d-402f-9233-9cd0bc0439ce"
 ADMIN_USER_IDS = {
     user_id.strip().lower()
     for user_id in os.environ.get("ADMIN_USER_IDS", DEFAULT_ADMIN_USER_ID).split(",")
