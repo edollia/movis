@@ -40,16 +40,19 @@ DEFAULT_SITE_SETTINGS = {
     "support_url": "https://www.instagram.com/pawswirl/",
 }
 
+DEFAULT_SUPABASE_URL = "https://vmzovzgynijvpemcirqb.supabase.co"
+DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_l-sNpT6S5tP8U1pPeJfgzQ_HMTlNPSS"
+
 SUPABASE_URL = (
     os.environ.get("SUPABASE_URL")
     or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
-    or ""
+    or DEFAULT_SUPABASE_URL
 ).rstrip("/")
 SUPABASE_ANON_KEY = (
     os.environ.get("SUPABASE_ANON_KEY")
     or os.environ.get("SUPABASE_PUBLISHABLE_KEY")
     or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
-    or ""
+    or DEFAULT_SUPABASE_PUBLISHABLE_KEY
 )
 DEFAULT_ADMIN_USER_ID = "f7f96a98-985d-402f-9233-9cd0bc0439ce"
 ADMIN_USER_IDS = {
