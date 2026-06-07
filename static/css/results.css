@@ -317,22 +317,21 @@ body.results-page{
   opacity:0;
 }
 .movie-card.is-launching{
-  animation:card-launch .6s cubic-bezier(.16,.9,.2,1) both;
-  filter:brightness(1.45) saturate(1.35);
+  animation:card-launch .36s cubic-bezier(.16,.9,.2,1) both;
+  filter:brightness(1.18) saturate(1.12);
 }
 .movie-card.is-launching::after{
   content:"";
-  position:absolute;
-  inset:-18%;
+  position:absolute;inset:-6%;
   z-index:5;
   border-radius:10px;
   background:
-    repeating-linear-gradient(90deg,transparent 0,transparent 7px,rgba(0,255,65,.92) 8px,transparent 10px),
-    repeating-linear-gradient(to bottom,transparent 0,transparent 11px,rgba(175,255,175,.5) 12px,transparent 14px);
+    repeating-linear-gradient(90deg,transparent 0,transparent 8px,rgba(0,255,65,.36) 9px,transparent 11px),
+    linear-gradient(90deg,transparent,rgba(0,255,65,.2),transparent);
   mix-blend-mode:screen;
   opacity:0;
   pointer-events:none;
-  animation:card-launch-lines .6s ease both;
+  animation:card-launch-lines .36s ease both;
 }
 .movie-face{
   position:absolute;inset:0;
@@ -545,16 +544,14 @@ body.results-page{
   58%,100%{transform:translateX(115%)}
 }
 @keyframes card-launch{
-  0%{transform:rotateY(0) scale(1)}
-  34%{transform:rotateY(82deg) scale(1.02)}
-  52%{transform:rotateY(0) scale(1.05)}
-  100%{transform:rotateY(0) scale(1);filter:brightness(1.78) saturate(1.65)}
+  0%{transform:translateY(0) scale(1)}
+  45%{transform:translateY(-3px) scale(1.012)}
+  100%{transform:translateY(0) scale(1);filter:brightness(1.24) saturate(1.14)}
 }
 @keyframes card-launch-lines{
-  0%{opacity:0;transform:scaleX(.6)}
-  24%{opacity:.95}
-  76%{opacity:.75}
-  100%{opacity:0;transform:scaleX(1.42)}
+  0%{opacity:0;transform:translateX(-8%) scaleX(.72)}
+  32%{opacity:.72}
+  100%{opacity:0;transform:translateX(10%) scaleX(1.08)}
 }
 .launch-card-shell{
   position:fixed;
@@ -562,7 +559,7 @@ body.results-page{
   pointer-events:none;
   transform-origin:50% 50%;
   transform-style:preserve-3d;
-  animation:launch-card-shell .62s cubic-bezier(.16,.9,.2,1) both;
+  animation:launch-card-shell .36s cubic-bezier(.16,.9,.2,1) both;
 }
 .launch-card-shell .movie-card{
   width:100%;
@@ -586,13 +583,13 @@ body.results-page{
   inset:-18%;
   z-index:2;
   background:
-    repeating-linear-gradient(90deg,rgba(0,255,65,.92) 0,rgba(0,255,65,.92) 2px,transparent 2px,transparent 12px),
-    repeating-linear-gradient(to bottom,rgba(175,255,175,.34) 0,rgba(175,255,175,.34) 1px,transparent 1px,transparent 7px);
+    repeating-linear-gradient(90deg,rgba(0,255,65,.34) 0,rgba(0,255,65,.34) 1px,transparent 1px,transparent 18px),
+    linear-gradient(90deg,transparent,rgba(0,255,65,.12),transparent);
   filter:blur(.2px);
   transform:scaleX(.04);
   opacity:0;
   pointer-events:none;
-  animation:launch-lines .62s cubic-bezier(.16,.9,.2,1) both;
+  animation:launch-lines .36s cubic-bezier(.16,.9,.2,1) both;
 }
 .launch-wipe::after{
   content:"";
@@ -603,40 +600,37 @@ body.results-page{
   mix-blend-mode:screen;
   opacity:0;
   pointer-events:none;
-  animation:launch-backdrop .62s cubic-bezier(.16,.9,.2,1) both;
+  animation:launch-backdrop .36s cubic-bezier(.16,.9,.2,1) both;
 }
 .launch-core{
   position:absolute;
   left:50%;top:50%;
   z-index:3;
-  width:18vmin;height:18vmin;
+  width:10vmin;height:10vmin;
   transform:translate(-50%,-50%);
-  border:1px solid rgba(0,255,65,.55);
-  box-shadow:0 0 40px rgba(0,255,65,.45),inset 0 0 26px rgba(0,255,65,.22);
-  animation:launch-core .62s cubic-bezier(.16,.9,.2,1) both;
+  border:1px solid rgba(0,255,65,.28);
+  box-shadow:0 0 24px rgba(0,255,65,.24),inset 0 0 16px rgba(0,255,65,.12);
+  animation:launch-core .36s cubic-bezier(.16,.9,.2,1) both;
 }
 @keyframes launch-card-shell{
   0%{opacity:1;transform:translate3d(0,0,0) scale(1)}
-  28%{opacity:1;transform:translate3d(0,0,0) scale(1.03)}
-  72%{opacity:.9;transform:translate3d(var(--launch-dx),var(--launch-dy),0) scale(var(--launch-scale))}
+  48%{opacity:1;transform:translate3d(var(--launch-dx),var(--launch-dy),0) scale(var(--launch-scale))}
   100%{opacity:0;transform:translate3d(var(--launch-dx),var(--launch-dy),0) scale(var(--launch-scale-end))}
 }
 @keyframes launch-backdrop{
   0%{opacity:0}
-  30%{opacity:.16}
-  78%{opacity:.88}
-  100%{opacity:1}
+  45%{opacity:.08}
+  100%{opacity:.18}
 }
 @keyframes launch-lines{
   0%{transform:scaleX(.04) rotate(0deg);opacity:0}
-  20%{opacity:.95}
-  72%{transform:scaleX(1.2) rotate(1deg);opacity:.82}
-  100%{transform:scaleX(1.35) rotate(1deg);opacity:1}
+  30%{opacity:.42}
+  100%{transform:scaleX(1.08) rotate(.4deg);opacity:.2}
 }
 @keyframes launch-core{
   0%{opacity:0;transform:translate(-50%,-50%) rotateY(0) scale(.55)}
-  40%{opacity:1}
-  100%{opacity:0;transform:translate(-50%,-50%) rotateY(180deg) scale(8)}
+  42%{opacity:.42}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2.8)}
 }
 
 @media(max-width:760px){

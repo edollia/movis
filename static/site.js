@@ -301,8 +301,8 @@
           return;
         }
         launching=true;
-        suppressClickUntil=Date.now()+1000;
-        var navTimer=setTimeout(go,560);
+        suppressClickUntil=Date.now()+800;
+        var navTimer=setTimeout(go,360);
 
         try{
           carousel.classList.add('is-launching-deck');
@@ -316,7 +316,6 @@
             if(rect.width && rect.height){
               var shell=document.createElement('div');
               var clone=card.cloneNode(true);
-              var scale=Math.max(window.innerWidth/rect.width,window.innerHeight/rect.height)*1.14;
 
               card.classList.add('is-launch-source');
               clone.classList.add('is-launching');
@@ -330,10 +329,10 @@
               shell.style.top=px(rect.top);
               shell.style.width=px(rect.width);
               shell.style.height=px(rect.height);
-              shell.style.setProperty('--launch-dx',px(window.innerWidth/2-(rect.left+rect.width/2)));
-              shell.style.setProperty('--launch-dy',px(window.innerHeight/2-(rect.top+rect.height/2)));
-              shell.style.setProperty('--launch-scale',String(scale));
-              shell.style.setProperty('--launch-scale-end',String(scale*1.08));
+              shell.style.setProperty('--launch-dx','0px');
+              shell.style.setProperty('--launch-dy','-10px');
+              shell.style.setProperty('--launch-scale','1.025');
+              shell.style.setProperty('--launch-scale-end','.985');
               shell.appendChild(clone);
               overlay.appendChild(shell);
             }
