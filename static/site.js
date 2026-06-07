@@ -147,7 +147,7 @@
         var stage=carousel.querySelector('[data-deck-stage]') || track;
         var stageWidth=stage.clientWidth || track.clientWidth || window.innerWidth;
         var card=slides[0].querySelector('[data-movie-card]');
-        var cardWidth=card ? card.getBoundingClientRect().width : 360;
+        var cardWidth=slides[0].offsetWidth || (card ? card.offsetWidth : 0) || (card ? card.getBoundingClientRect().width : 360);
         var isMobile=window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
         var spread=isMobile ? .34 : .48;
         var divisor=isMobile ? 3.4 : 2.55;
@@ -167,11 +167,12 @@
         var yMap=[0,10,21,32,42];
         var rotateMap=[0,7,11,14,16];
         var capped=Math.min(abs,4);
-        var motion=clamp(Math.max(Math.abs(progress || 0)*.7,motionLevel || 0),0,1);
-        var spreadLift=Math.min(abs,3)*(.12+motion*.22);
-        var scale=sampleCurve(scaleMap,capped)-motion*Math.min(abs,2.8)*.018;
-        var y=sampleCurve(yMap,capped)+motion*Math.min(abs,3)*7;
-        var depth=-76*capped-motion*Math.min(abs,3)*44;
+        var motion=clamp(motionLevel || 0,0,1);
+        var crossingLift=motion*Math.max(0,1-Math.abs(abs-.5)*2)*.14;
+        var spreadLift=Math.min(abs,3)*.12+crossingLift;
+        var scale=sampleCurve(scaleMap,capped);
+        var y=sampleCurve(yMap,capped);
+        var depth=-76*capped;
         var z=Math.round(720-capped*58);
 
         if(abs<.04)z=900;
@@ -408,7 +409,7 @@
         if((activeIndex===0 && progress>0) || (activeIndex===slides.length-1 && progress<0)){
           progress*=.24;
         }
-        queueDeckLayout(progress,.72);
+        queueDeckLayout(progress,.78);
       }
 
       function finishDrag(event){
@@ -417,11 +418,14 @@
         var dx=event.clientX-dragStartX;
         var dy=event.clientY-dragStartY;
         var metrics=dragMetrics || deckMetrics();
-        var projected=-dragProgress+(-dragVelocityX*260/metrics.swipeUnit);
+        var finalProgress=clamp(dx/metrics.swipeUnit,-2.85,2.85);
+        var pointerMoved=Math.sqrt(dx*dx+dy*dy)>7;
+        var horizontalMoved=Math.abs(dx)>9 && Math.abs(dx)>Math.abs(dy)*1.14;
+        var projected=-finalProgress+(-dragVelocityX*260/metrics.swipeUnit);
         var maxLeap=window.matchMedia && window.matchMedia('(max-width: 760px)').matches ? 4 : 5;
         var steps=0;
-        var moved=dragMoved;
-        var movedEnough=tapMoved || moved;
+        var moved=dragMoved || horizontalMoved;
+        var movedEnough=tapMoved || pointerMoved || moved;
 
         dragging=false;
         cancelQueuedLayout();
