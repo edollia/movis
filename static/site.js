@@ -281,19 +281,47 @@
       function launchCard(card,href){
         if(launching)return;
         launching=true;
-        suppressClickUntil=Date.now()+900;
+        suppressClickUntil=Date.now()+1200;
         carousel.classList.add('is-launching-deck');
-        if(card)card.classList.add('is-launching');
 
         var overlay=document.createElement('div');
         overlay.className='launch-wipe';
         overlay.setAttribute('aria-hidden','true');
-        overlay.innerHTML='<div class="launch-core"></div>';
+
+        if(card){
+          var rect=card.getBoundingClientRect();
+          if(rect.width && rect.height){
+            var shell=document.createElement('div');
+            var clone=card.cloneNode(true);
+            var scale=Math.max(window.innerWidth/rect.width,window.innerHeight/rect.height)*1.14;
+
+            card.classList.add('is-launch-source');
+            clone.classList.add('is-launching');
+            clone.querySelectorAll('a').forEach(function(link){
+              link.removeAttribute('href');
+              link.setAttribute('tabindex','-1');
+            });
+
+            shell.className='launch-card-shell';
+            shell.style.left=px(rect.left);
+            shell.style.top=px(rect.top);
+            shell.style.width=px(rect.width);
+            shell.style.height=px(rect.height);
+            shell.style.setProperty('--launch-dx',px(window.innerWidth/2-(rect.left+rect.width/2)));
+            shell.style.setProperty('--launch-dy',px(window.innerHeight/2-(rect.top+rect.height/2)));
+            shell.style.setProperty('--launch-scale',String(scale));
+            shell.style.setProperty('--launch-scale-end',String(scale*1.08));
+            shell.appendChild(clone);
+            overlay.appendChild(shell);
+          }
+        }
+
+        overlay.insertAdjacentHTML('beforeend','<div class="launch-core"></div>');
         document.body.appendChild(overlay);
 
         setTimeout(function(){
           window.location.assign(href);
-        },430);
+        },620);
       }
 
       track.addEventListener('keydown',function(event){
