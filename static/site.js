@@ -279,49 +279,58 @@
       }
 
       function launchCard(card,href){
-        if(launching)return;
-        launching=true;
-        suppressClickUntil=Date.now()+1200;
-        carousel.classList.add('is-launching-deck');
-
-        var overlay=document.createElement('div');
-        overlay.className='launch-wipe';
-        overlay.setAttribute('aria-hidden','true');
-
-        if(card){
-          var rect=card.getBoundingClientRect();
-          if(rect.width && rect.height){
-            var shell=document.createElement('div');
-            var clone=card.cloneNode(true);
-            var scale=Math.max(window.innerWidth/rect.width,window.innerHeight/rect.height)*1.14;
-
-            card.classList.add('is-launch-source');
-            clone.classList.add('is-launching');
-            clone.querySelectorAll('a').forEach(function(link){
-              link.removeAttribute('href');
-              link.setAttribute('tabindex','-1');
-            });
-
-            shell.className='launch-card-shell';
-            shell.style.left=px(rect.left);
-            shell.style.top=px(rect.top);
-            shell.style.width=px(rect.width);
-            shell.style.height=px(rect.height);
-            shell.style.setProperty('--launch-dx',px(window.innerWidth/2-(rect.left+rect.width/2)));
-            shell.style.setProperty('--launch-dy',px(window.innerHeight/2-(rect.top+rect.height/2)));
-            shell.style.setProperty('--launch-scale',String(scale));
-            shell.style.setProperty('--launch-scale-end',String(scale*1.08));
-            shell.appendChild(clone);
-            overlay.appendChild(shell);
-          }
+        function go(){
+          window.location.href=href;
         }
+        if(launching){
+          go();
+          return;
+        }
+        launching=true;
+        suppressClickUntil=Date.now()+1000;
+        var navTimer=setTimeout(go,560);
 
-        overlay.insertAdjacentHTML('beforeend','<div class="launch-core"></div>');
-        document.body.appendChild(overlay);
+        try{
+          carousel.classList.add('is-launching-deck');
 
-        setTimeout(function(){
-          window.location.assign(href);
-        },620);
+          var overlay=document.createElement('div');
+          overlay.className='launch-wipe';
+          overlay.setAttribute('aria-hidden','true');
+
+          if(card){
+            var rect=card.getBoundingClientRect();
+            if(rect.width && rect.height){
+              var shell=document.createElement('div');
+              var clone=card.cloneNode(true);
+              var scale=Math.max(window.innerWidth/rect.width,window.innerHeight/rect.height)*1.14;
+
+              card.classList.add('is-launch-source');
+              clone.classList.add('is-launching');
+              Array.prototype.forEach.call(clone.querySelectorAll('a'),function(link){
+                link.removeAttribute('href');
+                link.setAttribute('tabindex','-1');
+              });
+
+              shell.className='launch-card-shell';
+              shell.style.left=px(rect.left);
+              shell.style.top=px(rect.top);
+              shell.style.width=px(rect.width);
+              shell.style.height=px(rect.height);
+              shell.style.setProperty('--launch-dx',px(window.innerWidth/2-(rect.left+rect.width/2)));
+              shell.style.setProperty('--launch-dy',px(window.innerHeight/2-(rect.top+rect.height/2)));
+              shell.style.setProperty('--launch-scale',String(scale));
+              shell.style.setProperty('--launch-scale-end',String(scale*1.08));
+              shell.appendChild(clone);
+              overlay.appendChild(shell);
+            }
+          }
+
+          overlay.insertAdjacentHTML('beforeend','<div class="launch-core"></div>');
+          document.body.appendChild(overlay);
+        }catch(e){
+          clearTimeout(navTimer);
+          go();
+        }
       }
 
       track.addEventListener('keydown',function(event){
@@ -363,7 +372,11 @@
           }
           if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
           event.preventDefault();
-          launchCard(card,link.href);
+          try{
+            launchCard(card,link.href);
+          }catch(e){
+            window.location.href=link.href;
+          }
         });
       });
 
