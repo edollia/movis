@@ -123,6 +123,7 @@
       var dragProgress=0;
       var dragPointerId=null;
       var dragCaptureTarget=null;
+      var dragStartTarget=null;
       var dragMetrics=null;
       var dragging=false;
       var dragMoved=false;
@@ -134,6 +135,7 @@
       var wheelFrame=0;
       var pendingWheelSteps=0;
       var rushTimer=0;
+      var jumpTimer=0;
       var metricsCache=null;
       var layoutFrame=0;
       var queuedProgress=0;
@@ -202,9 +204,13 @@
         slides.forEach(function(slide,i){
           var card=slide.querySelector('[data-movie-card]');
           var isActive=i===index;
+          var settledDelta=i-index;
           var delta=i-index+progress;
           slide.classList.toggle('is-active-slide',isActive);
+          slide.classList.toggle('is-jumpable-slide',!isActive && Math.abs(settledDelta)<=3);
           slide.setAttribute('aria-hidden',isActive ? 'false' : 'true');
+          slide.setAttribute('data-pos',String(clamp(settledDelta,-4,4)));
+          slide.setAttribute('data-slide-index',String(i));
           applySlidePosition(slide,delta,metrics,progress,motionLevel);
           if(card){
             card.classList.toggle('is-active',isActive);
@@ -213,12 +219,12 @@
         });
       }
 
-      function markRushing(){
+      function markRushing(duration){
         carousel.classList.add('is-rushing');
         clearTimeout(rushTimer);
         rushTimer=setTimeout(function(){
           carousel.classList.remove('is-rushing');
-        },220);
+        },duration || 220);
       }
 
       function cancelQueuedLayout(){
@@ -248,8 +254,16 @@
       function setActive(index,focusTrack,fast){
         var nextIndex=clamp(index,0,slides.length-1);
         var changed=nextIndex!==activeIndex;
+        var jumpDistance=Math.abs(nextIndex-activeIndex);
         cancelQueuedLayout();
-        if(changed)markRushing();
+        if(changed){
+          carousel.setAttribute('data-jump',jumpDistance>1 || fast ? 'far' : 'near');
+          clearTimeout(jumpTimer);
+          jumpTimer=setTimeout(function(){
+            carousel.removeAttribute('data-jump');
+          },jumpDistance>1 || fast ? 340 : 240);
+          markRushing(jumpDistance>1 || fast ? 300 : 220);
+        }
         activeIndex=nextIndex;
         dragProgress=0;
         carousel.classList.remove('is-dragging');
@@ -396,6 +410,37 @@
         });
       });
 
+      function handleTapTarget(target,event){
+        if(!target || launching || Date.now()<suppressClickUntil)return false;
+        if(event && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey))return false;
+        if(target.nodeType!==1)target=target.parentElement;
+        if(!target || !target.closest)return false;
+
+        var link=target.closest('[data-card-hit]');
+        var slide=(link ? link.closest('[data-slide]') : target.closest('[data-slide]'));
+        if(!slide)return false;
+
+        var index=slides.indexOf(slide);
+        if(index<0)return false;
+
+        if(index!==activeIndex){
+          suppressClickUntil=Date.now()+360;
+          selectIndex(index,Math.abs(index-activeIndex)>1);
+          return true;
+        }
+
+        link=link || slide.querySelector('[data-card-hit]');
+        if(!link || !target.closest('[data-movie-card]'))return false;
+
+        suppressClickUntil=Date.now()+1000;
+        try{
+          launchCard(slide.querySelector('[data-movie-card]'),link.href);
+        }catch(e){
+          window.location.href=link.href;
+        }
+        return true;
+      }
+
       function releasePointer(event){
         if(!dragCaptureTarget || !dragCaptureTarget.releasePointerCapture)return;
         try{dragCaptureTarget.releasePointerCapture(event.pointerId);}catch(e){}
@@ -413,6 +458,7 @@
         dragVelocityX=0;
         dragPointerId=event.pointerId;
         dragCaptureTarget=event.currentTarget || track;
+        dragStartTarget=event.target;
         dragMetrics=deckMetrics(true);
         dragStartX=event.clientX;
         dragStartY=event.clientY;
@@ -467,12 +513,14 @@
         var steps=0;
         var moved=dragMoved || horizontalMoved;
         var movedEnough=tapMoved || pointerMoved || moved;
+        var tapTarget=dragStartTarget;
 
         dragging=false;
         cancelQueuedLayout();
         releasePointer(event);
         dragPointerId=null;
         dragCaptureTarget=null;
+        dragStartTarget=null;
         dragMetrics=null;
         carousel.classList.remove('is-dragging');
 
@@ -481,6 +529,7 @@
         if(!moved){
           dragProgress=0;
           dragVelocityX=0;
+          if(handleTapTarget(tapTarget,event))return true;
           return false;
         }
 
@@ -505,6 +554,7 @@
         dragVelocityX=0;
         dragPointerId=null;
         dragMetrics=null;
+        dragStartTarget=null;
         releasePointer(event);
         dragCaptureTarget=null;
         carousel.classList.remove('is-dragging');

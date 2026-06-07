@@ -27,7 +27,7 @@
         <div class="deck-stage" data-deck-stage>
           <ol class="carousel-track" data-carousel-track tabindex="0">
           {% for m in results %}
-            <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
+            <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide data-slide-index="{{ loop.index0 }}" data-pos="{{ loop.index0 if loop.index0 <= 4 else 4 }}" aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-movie-card>
               <div class="movie-face movie-front">
                 <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ m.title }}" draggable="false"></a>

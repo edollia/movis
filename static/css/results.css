@@ -207,6 +207,12 @@ body.results-page{
     opacity .16s ease,
     filter .16s ease;
 }
+.deck[data-jump="far"] .carousel-slide{
+  transition:
+    transform .3s cubic-bezier(.16,.9,.22,1),
+    opacity .2s ease,
+    filter .2s ease;
+}
 .carousel-slide:nth-child(1){
   --deck-s:1;
   --deck-o:1;
@@ -248,6 +254,7 @@ body.results-page{
   pointer-events:auto;
   will-change:transform,opacity;
 }
+.carousel-slide.is-jumpable-slide{cursor:pointer}
 .carousel-slide:not(.is-active-slide){cursor:pointer}
 .carousel-slide:not(.is-active-slide)::after{
   content:"";
