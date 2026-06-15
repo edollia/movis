@@ -524,14 +524,15 @@
         carousel.classList.remove('is-dragging');
 
         tapMoved=false;
-        if(movedEnough)suppressClickUntil=Date.now()+520;
         if(!moved){
           dragProgress=0;
           dragVelocityX=0;
           if(handleTapTarget(tapTarget,event))return true;
+          if(movedEnough)suppressClickUntil=Date.now()+520;
           return false;
         }
 
+        if(movedEnough)suppressClickUntil=Date.now()+520;
         if(Math.abs(dx)>Math.abs(dy)*1.05){
           steps=Math.round(projected);
           if(steps===0 && Math.abs(projected)>.22)steps=projected>0 ? 1 : -1;
