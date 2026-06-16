@@ -3,7 +3,15 @@
 {% block body_class %}home{% endblock %}
 
 {% block body %}
-  <canvas id="mx"></canvas>
+  <div class="tv-stage" aria-hidden="true">
+    <div class="tv-screen">
+      <canvas id="mx"></canvas>
+      <div class="tv-phosphor"></div>
+      <div class="tv-glitch"></div>
+      <div class="tv-glass-sheen"></div>
+      <div class="tv-edge-mask"></div>
+    </div>
+  </div>
   <div class="scan"></div>
   {% if settings.show_loading_screen %}
     <div class="boot" id="boot" aria-hidden="true" data-line-one="{{ settings.loading_line_1 }}" data-line-two="{{ settings.loading_line_2 }}">
@@ -25,5 +33,5 @@
 {% endblock %}
 
 {% block scripts %}
-  <script src="{{ url_for('static', filename='matrix.js') }}?v=deckmotion14"></script>
+  <script src="{{ url_for('static', filename='matrix.js') }}?v=mobiledeck1"></script>
 {% endblock %}

@@ -8,19 +8,30 @@ body{min-height:100vh}
 .home.standby #mx{filter:contrast(1.25) brightness(.7) saturate(.75)}
 .scan{
   position:fixed;inset:0;pointer-events:none;z-index:900;
-  background:repeating-linear-gradient(to bottom,
-    transparent 0,transparent 2px,rgba(0,0,0,.08) 2px,rgba(0,0,0,.08) 3px)
+  background:
+    radial-gradient(ellipse at 50% 50%,transparent 0,transparent 62%,rgba(0,0,0,.32) 100%),
+    repeating-linear-gradient(to bottom,
+      transparent 0,transparent 2px,rgba(0,0,0,.1) 2px,rgba(0,0,0,.1) 3px)
 }
 .home .scan{z-index:10;background:repeating-linear-gradient(to bottom,
-  transparent 0,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 3px)}
+  transparent 0,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 3px)}
 .signal{
   position:fixed;right:.7rem;bottom:.55rem;z-index:950;
-  color:#007021;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
-  min-width:14.4rem;min-height:1.25em;text-align:right;
+  color:#007021;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+  min-width:14.4rem;min-height:1.55rem;text-align:right;
   isolation:isolate;
+  padding:.25rem .42rem;
+  border:1px solid rgba(116,255,76,.16);
+  border-radius:3px;
+  background:linear-gradient(180deg,rgba(1,12,3,.66),rgba(0,0,0,.28));
+  box-shadow:
+    inset 0 0 1rem rgba(109,255,74,.06),
+    0 0 1rem rgba(0,0,0,.46);
+  backdrop-filter:blur(1px);
+  -webkit-backdrop-filter:blur(1px);
 }
 .signal-item{
-  position:absolute;right:0;bottom:0;
+  position:absolute;right:.42rem;bottom:.25rem;
   opacity:0;transform:translateY(.35rem);filter:blur(2px);
   transition:opacity .62s ease,transform .62s ease,filter .62s ease,text-shadow .9s ease;
   white-space:nowrap;
@@ -71,37 +82,42 @@ body{min-height:100vh}
   display:grid;
   place-items:center;
   padding:1rem;
-  background:rgba(0,0,0,.72);
-  backdrop-filter:blur(5px);
-  -webkit-backdrop-filter:blur(5px);
+  background:
+    radial-gradient(ellipse at 50% 48%,rgba(96,255,66,.1),transparent 44%),
+    rgba(0,0,0,.76);
+  backdrop-filter:blur(6px) saturate(1.2);
+  -webkit-backdrop-filter:blur(6px) saturate(1.2);
 }
 .admin-panel[hidden]{display:none}
 .admin-shell{
   position:relative;
-  width:min(94vw,520px);
+  width:min(94vw,560px);
   max-height:min(88dvh,720px);
   overflow:auto;
-  border:1px solid rgba(0,255,65,.44);
-  border-radius:6px;
+  border:1px solid rgba(194,255,146,.36);
+  border-radius:14px;
   background:
-    linear-gradient(135deg,rgba(0,204,255,.08),transparent 42%),
-    linear-gradient(180deg,#031006,#000 52%);
+    radial-gradient(ellipse at 50% 0,rgba(180,255,118,.12),transparent 38%),
+    radial-gradient(ellipse at 50% 100%,rgba(80,0,0,.1),transparent 42%),
+    linear-gradient(180deg,#071307,#010401 58%,#000);
   box-shadow:
     0 26px 80px rgba(0,0,0,.78),
-    0 0 36px rgba(0,255,65,.22),
-    inset 0 0 34px rgba(0,255,65,.1);
-  padding:1.15rem;
-  color:#7dff9c;
+    0 0 42px rgba(116,255,76,.18),
+    inset 0 0 0 1px rgba(255,255,210,.05),
+    inset 0 0 46px rgba(0,0,0,.66);
+  padding:1.25rem;
+  color:#b6f89b;
 }
 .admin-shell::before{
   content:"";
   position:absolute;
   inset:0;
   pointer-events:none;
-  border-radius:6px;
+  border-radius:14px;
   background:
-    repeating-linear-gradient(to bottom,rgba(0,255,65,.045) 0,rgba(0,255,65,.045) 1px,transparent 2px,transparent 5px),
-    radial-gradient(ellipse at 50% 0,rgba(255,196,87,.08),transparent 42%);
+    radial-gradient(ellipse at 50% 50%,transparent 0,transparent 58%,rgba(0,0,0,.62) 100%),
+    repeating-linear-gradient(to bottom,rgba(232,255,187,.06) 0,rgba(232,255,187,.06) 1px,transparent 3px,transparent 6px),
+    linear-gradient(90deg,rgba(255,20,0,.05),transparent 20%,transparent 80%,rgba(0,140,255,.05));
 }
 .admin-close{
   position:absolute;
@@ -110,10 +126,10 @@ body{min-height:100vh}
   z-index:1;
   width:2rem;
   height:2rem;
-  border:1px solid rgba(0,255,65,.32);
+  border:1px solid rgba(176,255,128,.34);
   border-radius:3px;
-  background:#010701;
-  color:#00ff41;
+  background:linear-gradient(#142b10,#030803);
+  color:#d5ffc1;
   cursor:pointer;
   font:1rem/1 'Share Tech Mono',monospace;
 }
@@ -123,7 +139,7 @@ body{min-height:100vh}
 .admin-settings,
 .admin-status{position:relative;z-index:1}
 .admin-kicker{
-  color:#0fa63d;
+  color:#73c86a;
   font-size:.68rem;
   letter-spacing:.18em;
   text-transform:uppercase;
@@ -131,9 +147,9 @@ body{min-height:100vh}
 }
 .admin-shell h2{
   margin:.18rem 2.5rem 1rem 0;
-  color:#00ff41;
+  color:#d7ffc3;
   font:400 2.15rem/.85 'VT323',monospace;
-  text-shadow:0 0 16px rgba(0,255,65,.32);
+  text-shadow:0 0 18px rgba(146,255,92,.3),1px 0 rgba(0,140,255,.14),-1px 0 rgba(255,20,0,.12);
 }
 .admin-login,
 .admin-settings{
@@ -143,7 +159,7 @@ body{min-height:100vh}
 .admin-login[hidden],
 .admin-settings[hidden]{display:none}
 .admin-owner{
-  color:#0fa63d;
+  color:#78d36e;
   font-size:.75rem;
   letter-spacing:.04em;
 }
@@ -151,7 +167,7 @@ body{min-height:100vh}
 .admin-settings label{
   display:grid;
   gap:.32rem;
-  color:#69d989;
+  color:#92d985;
   font-size:.72rem;
   letter-spacing:.08em;
   text-transform:uppercase;
@@ -160,37 +176,37 @@ body{min-height:100vh}
 .admin-settings input[type="text"],
 .admin-settings input[type="url"]{
   width:100%;
-  border:1px solid rgba(0,255,65,.26);
+  border:1px solid rgba(176,255,128,.24);
   border-radius:3px;
   outline:none;
-  background:linear-gradient(#000b03,#000);
-  color:#00ff41;
+  background:linear-gradient(rgba(8,28,6,.92),rgba(0,5,0,.96));
+  color:#c9ffab;
   font:1rem 'Share Tech Mono',monospace;
   padding:.68rem .72rem;
   text-transform:none;
   letter-spacing:0;
-  box-shadow:inset 0 0 16px rgba(0,255,65,.07);
+  box-shadow:inset 0 0 18px rgba(116,255,76,.08);
 }
 .admin-login input:focus,
 .admin-settings input[type="text"]:focus,
 .admin-settings input[type="url"]:focus{
-  border-color:#00ff41;
-  box-shadow:0 0 20px rgba(0,255,65,.18),inset 0 0 18px rgba(0,255,65,.1);
+  border-color:#dbffc5;
+  box-shadow:0 0 22px rgba(145,255,92,.18),inset 0 0 18px rgba(116,255,76,.11);
 }
 .admin-toggle{
   min-height:3.1rem;
   grid-template-columns:auto 1fr;
   align-items:center;
-  border:1px solid rgba(0,255,65,.18);
+  border:1px solid rgba(176,255,128,.16);
   border-radius:5px;
   padding:.65rem .72rem;
-  background:rgba(0,0,0,.38);
+  background:linear-gradient(180deg,rgba(9,26,8,.62),rgba(0,0,0,.42));
 }
 .admin-toggle input{
   appearance:none;
   width:2.65rem;
   height:1.35rem;
-  border:1px solid rgba(0,255,65,.35);
+  border:1px solid rgba(176,255,128,.34);
   border-radius:999px;
   background:#020802;
   box-shadow:inset 0 0 10px rgba(0,0,0,.8);
@@ -205,21 +221,21 @@ body{min-height:100vh}
   width:.88rem;
   height:.88rem;
   border-radius:50%;
-  background:#145d22;
+  background:#305b22;
   box-shadow:0 0 10px rgba(0,255,65,.14);
   transition:transform .18s ease,background .18s ease,box-shadow .18s ease;
 }
 .admin-toggle input:checked{
-  border-color:#00ff41;
-  background:rgba(0,255,65,.13);
+  border-color:#d8ffc2;
+  background:rgba(116,255,76,.14);
 }
 .admin-toggle input:checked::before{
   transform:translateX(1.22rem);
-  background:#00ff41;
-  box-shadow:0 0 14px rgba(0,255,65,.58);
+  background:#d8ffc2;
+  box-shadow:0 0 16px rgba(145,255,92,.54);
 }
 .admin-toggle span{
-  color:#7dff9c;
+  color:#b6f89b;
   font-size:.82rem;
 }
 .admin-actions{
@@ -231,15 +247,15 @@ body{min-height:100vh}
 .admin-login button,
 .admin-actions button{
   min-height:2.55rem;
-  border:1px solid rgba(0,255,65,.34);
+  border:1px solid rgba(176,255,128,.32);
   border-radius:3px;
-  background:linear-gradient(#063612,#010701);
-  color:#00ff41;
+  background:linear-gradient(#173d13,#030803);
+  color:#d2ffb8;
   cursor:pointer;
   font:.8rem 'Share Tech Mono',monospace;
   letter-spacing:.08em;
   text-transform:lowercase;
-  text-shadow:0 0 8px rgba(0,255,65,.5);
+  text-shadow:0 0 8px rgba(145,255,92,.45);
   transition:background .16s,color .16s,border-color .16s,box-shadow .16s,transform .12s,opacity .16s;
 }
 .admin-login button:hover,
@@ -248,12 +264,12 @@ body{min-height:100vh}
 .admin-actions button:focus-visible,
 .admin-close:hover,
 .admin-close:focus-visible{
-  background:#00ff41;
-  color:#000;
-  border-color:#00ff41;
+  background:linear-gradient(#e6ffd1,#84ee62);
+  color:#020602;
+  border-color:#e6ffd1;
   outline:none;
   text-shadow:none;
-  box-shadow:0 0 20px rgba(0,255,65,.32);
+  box-shadow:0 0 22px rgba(145,255,92,.34);
 }
 .admin-login button:active,
 .admin-actions button:active,
@@ -263,18 +279,35 @@ body{min-height:100vh}
   opacity:.45;
   cursor:not-allowed;
   background:#010701;
-  color:#236b35;
-  border-color:rgba(0,255,65,.14);
+  color:#3d6b35;
+  border-color:rgba(176,255,128,.14);
   box-shadow:none;
 }
 .admin-status{
   min-height:1.2rem;
   margin-top:.8rem;
-  color:#7dff9c;
+  color:#b6f89b;
   font-size:.76rem;
   line-height:1.35;
 }
 .admin-status.is-error{color:#ffcc66}
+
+@media(max-width:460px){
+  .signal{
+    right:.5rem;
+    bottom:.45rem;
+    min-width:11.8rem;
+    font-size:.62rem;
+  }
+  .admin-panel{padding:.65rem}
+  .admin-shell{
+    width:min(96vw,560px);
+    max-height:90dvh;
+    padding:1rem;
+    border-radius:12px;
+  }
+  .admin-actions{grid-template-columns:1fr}
+}
 
 @keyframes blink{50%{opacity:0}}
 @keyframes signal-glow{

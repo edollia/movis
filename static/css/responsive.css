@@ -1,8 +1,8 @@
 @media(max-width:380px){
   .srow input{font-size:.75rem;padding:.42em .5em}
   .srow button{font-size:.7rem;padding:.42em .55em}
-  .results-intro{padding:.9rem .7rem .5rem}
-  .deck-head{padding:0 .7rem .7rem}
+  .results-intro{padding-left:.6rem;padding-right:.6rem}
+  .deck-head{padding:0}
   .boot-screen{width:88vw;height:62vw;min-height:210px;padding:3.2rem 1.35rem}
   .boot-line{font-size:.78rem}
   .idle-monitor{min-height:240px;padding:4rem 1.25rem 2.4rem}

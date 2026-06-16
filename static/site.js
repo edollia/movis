@@ -17,30 +17,30 @@
   }
 
   function bindTapSounds(){
+    var sounds={};
     document.querySelectorAll('[data-tap-sound]').forEach(function(el){
+      var src=el.getAttribute('data-tap-sound');
+      if(src && !sounds[src]){
+        try{
+          sounds[src]=new Audio(src);
+          sounds[src].preload='auto';
+          sounds[src].volume=.48;
+        }catch(e){}
+      }
       el.addEventListener('click',function(event){
         if(el.tagName==='A' && el.target==='_blank'){
           event.preventDefault();
           var opened=window.open(el.href,'_blank','noopener,noreferrer');
           if(opened)opened.opener=null;
         }
-        var src=el.getAttribute('data-tap-sound');
         if(!src)return;
         try{
-          var audio=new Audio(src);
-          audio.volume=.55;
+          var audio=sounds[src] || new Audio(src);
+          audio.currentTime=0;
           audio.play().catch(function(){});
         }catch(e){}
       });
     });
-  }
-
-  function lockPageZoom(){
-    document.addEventListener('gesturestart',function(event){ event.preventDefault(); },{passive:false});
-    document.addEventListener('gesturechange',function(event){ event.preventDefault(); },{passive:false});
-    document.addEventListener('touchmove',function(event){
-      if(event.touches && event.touches.length>1)event.preventDefault();
-    },{passive:false});
   }
 
   function initPosterArt(){
@@ -141,6 +141,7 @@
       var queuedProgress=0;
       var queuedMotionLevel=0;
       var launching=false;
+      var launchDelayTimer=0;
 
       if(!track || !slides.length)return;
 
@@ -346,19 +347,65 @@
         }
       }
 
+      function launchSlide(slide,event){
+        if(!slide)return false;
+        var link=slide.querySelector('[data-card-hit]');
+        var index=slides.indexOf(slide);
+        if(!link)return false;
+        if(index<0)return false;
+        if(event && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey))return false;
+        suppressClickUntil=Date.now()+1000;
+        clearTimeout(launchDelayTimer);
+
+        function openSelectedSlide(){
+          try{
+            launchCard(slide.querySelector('[data-movie-card]'),link.href);
+          }catch(e){
+            window.location.href=link.href;
+          }
+        }
+
+        if(index!==activeIndex){
+          selectIndex(index,Math.abs(index-activeIndex)>1);
+          launchDelayTimer=setTimeout(openSelectedSlide,190);
+        } else {
+          openSelectedSlide();
+        }
+        return true;
+      }
+
       track.addEventListener('keydown',function(event){
+        var handled=false;
+        if(event.key==='ArrowLeft'){
+          scrollToIndex(activeIndex-1);
+          handled=true;
+        } else if(event.key==='ArrowRight'){
+          scrollToIndex(activeIndex+1);
+          handled=true;
+        } else if(event.key==='Home'){
+          scrollToIndex(0);
+          handled=true;
+        } else if(event.key==='End'){
+          scrollToIndex(slides.length-1);
+          handled=true;
+        }
+        if(handled){
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      });
+
+      window.addEventListener('keydown',function(event){
+        var target=event.target;
+        if(!document.body.classList.contains('results-page'))return;
+        if(target && target.closest && target.closest('input,textarea,select,[contenteditable="true"],[data-admin-panel]'))return;
+        if(target && target.closest && target.closest('[data-carousel-track]'))return;
         if(event.key==='ArrowLeft'){
           event.preventDefault();
           scrollToIndex(activeIndex-1);
         } else if(event.key==='ArrowRight'){
           event.preventDefault();
           scrollToIndex(activeIndex+1);
-        } else if(event.key==='Home'){
-          event.preventDefault();
-          scrollToIndex(0);
-        } else if(event.key==='End'){
-          event.preventDefault();
-          scrollToIndex(slides.length-1);
         }
       });
 
@@ -372,24 +419,15 @@
       carousel.querySelectorAll('[data-card-hit]').forEach(function(link){
         link.addEventListener('click',function(event){
           var slide=link.closest('[data-slide]');
-          var index=slides.indexOf(slide);
-          var card=link.closest('[data-movie-card]');
-          if(Date.now()<suppressClickUntil || dragMoved){
+          if(dragMoved || Date.now()<suppressClickUntil){
             event.preventDefault();
-            return;
-          }
-          if(index!==activeIndex){
-            event.preventDefault();
-            selectIndex(index,true);
+            event.stopPropagation();
             return;
           }
           if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
           event.preventDefault();
-          try{
-            launchCard(card,link.href);
-          }catch(e){
-            window.location.href=link.href;
-          }
+          event.stopPropagation();
+          launchSlide(slide,event);
         });
       });
 
@@ -403,9 +441,10 @@
       slides.forEach(function(slide,i){
         slide.addEventListener('click',function(event){
           if(event.target.closest('[data-card-hit]'))return;
-          if(i===activeIndex || dragMoved || Date.now()<suppressClickUntil)return;
+          if(dragMoved || Date.now()<suppressClickUntil)return;
           event.preventDefault();
-          selectIndex(i,true);
+          event.stopPropagation();
+          launchSlide(slide,event);
         });
       });
 
@@ -422,22 +461,10 @@
         var index=slides.indexOf(slide);
         if(index<0)return false;
 
-        if(index!==activeIndex){
-          suppressClickUntil=Date.now()+360;
-          selectIndex(index,Math.abs(index-activeIndex)>1);
-          return true;
-        }
-
         link=link || slide.querySelector('[data-card-hit]');
-        if(!link || !target.closest('[data-movie-card]'))return false;
+        if(!link)return false;
 
-        suppressClickUntil=Date.now()+1000;
-        try{
-          launchCard(slide.querySelector('[data-movie-card]'),link.href);
-        }catch(e){
-          window.location.href=link.href;
-        }
-        return true;
+        return launchSlide(slide,event);
       }
 
       function releasePointer(event){
@@ -994,7 +1021,6 @@
 
   cycleSignal();
   bindTapSounds();
-  lockPageZoom();
   initPosterArt();
   initCarousels();
   initOwnerPanel();
