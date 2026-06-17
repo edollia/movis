@@ -22,9 +22,12 @@ MAX_QUERY_LENGTH = 120
 IMDB_ID_RE = re.compile(r"^tt\d+$")
 
 SITE_NAME = "GoonToThis"
-SITE_TITLE = "GoonToThis - Goon To This Movie Search"
+SITE_TITLE = "GoonToThis - Movies"
 SITE_URL = "https://goontothis.com"
-SITE_DESCRIPTION = "Search a movie or show, then tap a card to go right to it."
+SITE_DESCRIPTION = (
+    "Search any movie or show and jump straight to the highest-quality video "
+    "experience available across movie websites."
+)
 
 GOATCOUNTER_SRC = "//gc.zgo.at/count.js"
 GOATCOUNTER_SITE = "https://goon2this.goatcounter.com/count"
@@ -658,8 +661,11 @@ def search():
         return redirect("/")
 
     query_path = "/search?" + urlencode({"q": q})
-    page_title = f'"{q}" results - {SITE_NAME}'
-    page_description = f'Search results for "{q}". Swipe the cards and launch a movie or show fast.'
+    page_title = f'{q} - {SITE_NAME} Movies'
+    page_description = (
+        f'Search "{q}" on GoonToThis and launch a movie or show fast, with a '
+        "high-quality video experience built to beat ordinary movie websites."
+    )
 
     return render_template(
         "results.html",
