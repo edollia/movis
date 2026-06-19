@@ -32,6 +32,7 @@
           event.preventDefault();
           var opened=window.open(el.href,'_blank','noopener,noreferrer');
           if(opened)opened.opener=null;
+          if(!opened)window.location.href=el.href;
         }
         if(!src)return;
         try{
@@ -79,9 +80,10 @@
     });
   }
 
-  function syncCardControls(card){
+  function syncCardControls(card,hit){
     var active=card.classList.contains('is-active');
-    card.querySelectorAll('[data-card-hit]').forEach(function(el){
+    var hits=hit ? [hit] : Array.prototype.slice.call(card.querySelectorAll('[data-card-hit]'));
+    hits.forEach(function(el){
       if(active){
         el.removeAttribute('tabindex');
       } else {
@@ -114,6 +116,9 @@
       var prev=carousel.querySelector('[data-carousel-prev]');
       var next=carousel.querySelector('[data-carousel-next]');
       var count=carousel.querySelector('[data-carousel-count]');
+      var stage=carousel.querySelector('[data-deck-stage]');
+      var mobileQuery=window.matchMedia ? window.matchMedia('(max-width: 760px)') : null;
+      var isMobile=mobileQuery ? mobileQuery.matches : false;
       var activeIndex=0;
       var dragStartX=0;
       var dragStartY=0;
@@ -144,23 +149,53 @@
       var launchDelayTimer=0;
 
       if(!track || !slides.length)return;
+      stage=stage || track;
+
+      var slideModels=slides.map(function(slide,i){
+        var model={
+          slide:slide,
+          card:slide.querySelector('[data-movie-card]'),
+          hit:slide.querySelector('[data-card-hit]'),
+          index:i,
+          styles:{},
+          flags:{}
+        };
+        slide._movisModel=model;
+        return model;
+      });
+
+      function modelFromSlide(slide){
+        return slide && slide._movisModel ? slide._movisModel : null;
+      }
+
+      function setSlideVar(model,name,value){
+        if(model.styles[name]===value)return;
+        model.styles[name]=value;
+        model.slide.style.setProperty(name,value);
+      }
+
+      function setSlideFlag(model,name,value){
+        value=!!value;
+        if(model.flags[name]===value)return;
+        model.flags[name]=value;
+        model.slide.classList.toggle(name,value);
+      }
 
       function deckMetrics(force){
         if(metricsCache && !force)return metricsCache;
-        var stage=carousel.querySelector('[data-deck-stage]') || track;
         var stageWidth=stage.clientWidth || track.clientWidth || window.innerWidth;
-        var card=slides[0].querySelector('[data-movie-card]');
+        var card=slideModels[0].card;
         var cardWidth=slides[0].offsetWidth || (card ? card.offsetWidth : 0) || (card ? card.getBoundingClientRect().width : 360);
-        var isMobile=window.matchMedia && window.matchMedia('(max-width: 760px)').matches;
         var spread=isMobile ? .34 : .48;
         var divisor=isMobile ? 3.4 : 2.55;
         var side=Math.min(cardWidth*spread,Math.max(isMobile ? 54 : 78,(stageWidth-cardWidth)/divisor));
-        var swipeUnit=Math.max(side*1.22,cardWidth*(isMobile ? .42 : .38));
+        var swipeUnit=Math.max(side*(isMobile ? 1.48 : 1.22),cardWidth*(isMobile ? .62 : .38));
         metricsCache={side:side,cardWidth:cardWidth,swipeUnit:swipeUnit};
         return metricsCache;
       }
 
-      function applySlidePosition(slide,delta,metrics,progress,motionLevel){
+      function applySlidePosition(model,delta,metrics,progress,motionLevel){
+        var slide=model.slide;
         var abs=Math.abs(delta);
         var sign=delta<0 ? -1 : delta>0 ? 1 : 0;
         var offsetMap=[0,1,1.58,2.04,2.48];
@@ -171,6 +206,23 @@
         var rotateMap=[0,7,11,14,16];
         var capped=Math.min(abs,4);
         var motion=clamp(motionLevel || 0,0,1);
+        var far=abs>4.35;
+        var farSign=sign || (model.index<activeIndex ? -1 : 1);
+
+        if(far){
+          setSlideVar(model,'--deck-x',px(farSign*metrics.side*2.65));
+          setSlideVar(model,'--deck-y',px(42));
+          setSlideVar(model,'--deck-r',(farSign*-16)+'deg');
+          setSlideVar(model,'--deck-s','.56');
+          setSlideVar(model,'--deck-o','0');
+          setSlideVar(model,'--deck-blur','0px');
+          setSlideVar(model,'--deck-depth',px(-320));
+          setSlideVar(model,'--deck-z','1');
+          setSlideFlag(model,'is-visible',false);
+          setSlideFlag(model,'is-far',true);
+          return;
+        }
+
         var crossingLift=motion*Math.max(0,1-Math.abs(abs-.5)*2)*.14;
         var spreadLift=Math.min(abs,3)*.12+crossingLift;
         var scale=sampleCurve(scaleMap,capped);
@@ -188,34 +240,42 @@
           }
         }
 
-        slide.style.setProperty('--deck-x',px(sign*metrics.side*(sampleCurve(offsetMap,capped)+spreadLift)));
-        slide.style.setProperty('--deck-y',px(y));
-        slide.style.setProperty('--deck-r',(sign*-sampleCurve(rotateMap,capped))+'deg');
-        slide.style.setProperty('--deck-s',Math.max(.56,scale));
-        slide.style.setProperty('--deck-o',sampleCurve(opacityMap,capped));
-        slide.style.setProperty('--deck-blur',px(sampleCurve(blurMap,capped)));
-        slide.style.setProperty('--deck-depth',px(depth));
-        slide.style.setProperty('--deck-z',String(z));
-        slide.classList.toggle('is-visible',abs<=3.35);
-        slide.classList.toggle('is-far',abs>3.35);
+        setSlideVar(model,'--deck-x',px(sign*metrics.side*(sampleCurve(offsetMap,capped)+spreadLift)));
+        setSlideVar(model,'--deck-y',px(y));
+        setSlideVar(model,'--deck-r',(sign*-sampleCurve(rotateMap,capped))+'deg');
+        setSlideVar(model,'--deck-s',String(Math.max(.56,scale)));
+        setSlideVar(model,'--deck-o',String(sampleCurve(opacityMap,capped)));
+        setSlideVar(model,'--deck-blur',px(sampleCurve(blurMap,capped)));
+        setSlideVar(model,'--deck-depth',px(depth));
+        setSlideVar(model,'--deck-z',String(z));
+        setSlideFlag(model,'is-visible',abs<=3.35);
+        setSlideFlag(model,'is-far',abs>3.35);
       }
 
       function applyDeckLayout(index,progress,motionLevel,metricsOverride){
         var metrics=metricsOverride || deckMetrics();
-        slides.forEach(function(slide,i){
-          var card=slide.querySelector('[data-movie-card]');
+        slideModels.forEach(function(model,i){
+          var slide=model.slide;
+          var card=model.card;
           var isActive=i===index;
           var settledDelta=i-index;
           var delta=i-index+progress;
-          slide.classList.toggle('is-active-slide',isActive);
-          slide.classList.toggle('is-jumpable-slide',!isActive && Math.abs(settledDelta)<=3);
-          slide.setAttribute('aria-hidden',isActive ? 'false' : 'true');
-          slide.setAttribute('data-pos',String(clamp(settledDelta,-4,4)));
-          slide.setAttribute('data-slide-index',String(i));
-          applySlidePosition(slide,delta,metrics,progress,motionLevel);
+          setSlideFlag(model,'is-active-slide',isActive);
+          setSlideFlag(model,'is-jumpable-slide',!isActive && Math.abs(settledDelta)<=3);
+          var ariaHidden=isActive ? 'false' : 'true';
+          if(model.styles.ariaHidden!==ariaHidden){
+            model.styles.ariaHidden=ariaHidden;
+            slide.setAttribute('aria-hidden',ariaHidden);
+          }
+          var dataPos=String(clamp(settledDelta,-4,4));
+          if(model.styles.dataPos!==dataPos){
+            model.styles.dataPos=dataPos;
+            slide.setAttribute('data-pos',dataPos);
+          }
+          applySlidePosition(model,delta,metrics,progress,motionLevel);
           if(card){
             card.classList.toggle('is-active',isActive);
-            syncCardControls(card);
+            syncCardControls(card,model.hit);
           }
         });
       }
@@ -349,8 +409,9 @@
 
       function launchSlide(slide,event){
         if(!slide)return false;
-        var link=slide.querySelector('[data-card-hit]');
-        var index=slides.indexOf(slide);
+        var model=modelFromSlide(slide);
+        var link=model ? model.hit : slide.querySelector('[data-card-hit]');
+        var index=model ? model.index : slides.indexOf(slide);
         if(!link)return false;
         if(index<0)return false;
         if(event && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey))return false;
@@ -359,7 +420,7 @@
 
         function openSelectedSlide(){
           try{
-            launchCard(slide.querySelector('[data-movie-card]'),link.href);
+            launchCard(model ? model.card : slide.querySelector('[data-movie-card]'),link.href);
           }catch(e){
             window.location.href=link.href;
           }
@@ -388,6 +449,8 @@
         } else if(event.key==='End'){
           scrollToIndex(slides.length-1);
           handled=true;
+        } else if(event.key==='Enter' || event.key===' '){
+          handled=launchSlide(slides[activeIndex],event);
         }
         if(handled){
           event.preventDefault();
@@ -412,13 +475,14 @@
       if(prev)prev.addEventListener('click',function(){ selectIndex(activeIndex-1,true); });
       if(next)next.addEventListener('click',function(){ selectIndex(activeIndex+1,true); });
 
-      carousel.querySelectorAll('[data-movie-card]').forEach(function(card){
-        syncCardControls(card);
+      slideModels.forEach(function(model){
+        if(model.card)syncCardControls(model.card,model.hit);
       });
 
-      carousel.querySelectorAll('[data-card-hit]').forEach(function(link){
+      slideModels.forEach(function(model){
+        var link=model.hit;
+        if(!link)return;
         link.addEventListener('click',function(event){
-          var slide=link.closest('[data-slide]');
           if(dragMoved || Date.now()<suppressClickUntil){
             event.preventDefault();
             event.stopPropagation();
@@ -427,7 +491,7 @@
           if(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)return;
           event.preventDefault();
           event.stopPropagation();
-          launchSlide(slide,event);
+          launchSlide(model.slide,event);
         });
       });
 
@@ -461,7 +525,8 @@
         var index=slides.indexOf(slide);
         if(index<0)return false;
 
-        link=link || slide.querySelector('[data-card-hit]');
+        var model=modelFromSlide(slide);
+        link=link || (model ? model.hit : slide.querySelector('[data-card-hit]'));
         if(!link)return false;
 
         return launchSlide(slide,event);
@@ -504,14 +569,17 @@
         var now=event.timeStamp || Date.now();
         var dt=Math.max(12,now-dragLastTime);
         var metrics=dragMetrics || deckMetrics();
-        var progress=clamp(dx/metrics.swipeUnit,-2.85,2.85);
+        var progress=clamp(dx/metrics.swipeUnit,isMobile ? -1.35 : -2.85,isMobile ? 1.35 : 2.85);
+        var tapThreshold=isMobile ? 10 : 7;
+        var dragThreshold=isMobile ? 14 : 9;
+        var horizontalRatio=isMobile ? 1.32 : 1.14;
 
         dragVelocityX=(event.clientX-dragLastX)/dt;
         dragLastX=event.clientX;
         dragLastTime=now;
 
-        if(!tapMoved && Math.sqrt(dx*dx+dy*dy)>7)tapMoved=true;
-        if(!dragMoved && Math.abs(dx)>9 && Math.abs(dx)>Math.abs(dy)*1.14){
+        if(!tapMoved && Math.sqrt(dx*dx+dy*dy)>tapThreshold)tapMoved=true;
+        if(!dragMoved && Math.abs(dx)>dragThreshold && Math.abs(dx)>Math.abs(dy)*horizontalRatio){
           dragMoved=true;
           carousel.classList.add('is-dragging');
           carousel.classList.remove('is-rushing');
@@ -531,11 +599,16 @@
         var dx=event.clientX-dragStartX;
         var dy=event.clientY-dragStartY;
         var metrics=dragMetrics || deckMetrics();
-        var finalProgress=clamp(dx/metrics.swipeUnit,-2.85,2.85);
-        var pointerMoved=Math.sqrt(dx*dx+dy*dy)>7;
-        var horizontalMoved=Math.abs(dx)>9 && Math.abs(dx)>Math.abs(dy)*1.14;
-        var projected=-finalProgress+(-dragVelocityX*260/metrics.swipeUnit);
-        var maxLeap=window.matchMedia && window.matchMedia('(max-width: 760px)').matches ? 4 : 5;
+        var finalProgress=clamp(dx/metrics.swipeUnit,isMobile ? -1.35 : -2.85,isMobile ? 1.35 : 2.85);
+        var tapThreshold=isMobile ? 10 : 7;
+        var dragThreshold=isMobile ? 14 : 9;
+        var horizontalRatio=isMobile ? 1.28 : 1.14;
+        var velocityProjection=isMobile ? 120 : 260;
+        var stepThreshold=isMobile ? .34 : .22;
+        var pointerMoved=Math.sqrt(dx*dx+dy*dy)>tapThreshold;
+        var horizontalMoved=Math.abs(dx)>dragThreshold && Math.abs(dx)>Math.abs(dy)*horizontalRatio;
+        var projected=-finalProgress+(-dragVelocityX*velocityProjection/metrics.swipeUnit);
+        var maxLeap=isMobile ? 1 : 5;
         var steps=0;
         var moved=dragMoved || horizontalMoved;
         var movedEnough=tapMoved || pointerMoved || moved;
@@ -560,9 +633,9 @@
         }
 
         if(movedEnough)suppressClickUntil=Date.now()+520;
-        if(Math.abs(dx)>Math.abs(dy)*1.05){
+        if(Math.abs(dx)>Math.abs(dy)*(isMobile ? 1.18 : 1.05)){
           steps=Math.round(projected);
-          if(steps===0 && Math.abs(projected)>.22)steps=projected>0 ? 1 : -1;
+          if(steps===0 && Math.abs(projected)>stepThreshold)steps=projected>0 ? 1 : -1;
           steps=clamp(steps,-maxLeap,maxLeap);
         }
         selectIndex(activeIndex+steps,Math.abs(steps)>1);
@@ -589,6 +662,22 @@
         applyDeckLayout(activeIndex,0,0);
       }
 
+      function forceSettleDrag(){
+        if(!dragging)return;
+        dragging=false;
+        cancelQueuedLayout();
+        dragMoved=false;
+        tapMoved=false;
+        dragProgress=0;
+        dragVelocityX=0;
+        dragPointerId=null;
+        dragMetrics=null;
+        dragStartTarget=null;
+        dragCaptureTarget=null;
+        carousel.classList.remove('is-dragging');
+        applyDeckLayout(activeIndex,0,0);
+      }
+
       function bindPointerSurface(surface){
         if(!surface)return;
         surface.addEventListener('pointerdown',beginDrag);
@@ -601,6 +690,12 @@
       }
 
       bindPointerSurface(track);
+      window.addEventListener('pointerup',finishDrag);
+      window.addEventListener('pointercancel',cancelDrag);
+      window.addEventListener('blur',forceSettleDrag);
+      document.addEventListener('visibilitychange',function(){
+        if(document.hidden)forceSettleDrag();
+      });
       track.addEventListener('dragstart',function(event){
         event.preventDefault();
       });
@@ -675,10 +770,25 @@
       window.addEventListener('resize',function(){
         clearTimeout(resizeTimer);
         resizeTimer=setTimeout(function(){
+          isMobile=mobileQuery ? mobileQuery.matches : false;
           metricsCache=null;
           setActive(activeIndex,false);
         },120);
       });
+
+      if(mobileQuery && mobileQuery.addEventListener){
+        mobileQuery.addEventListener('change',function(event){
+          isMobile=event.matches;
+          metricsCache=null;
+          setActive(activeIndex,false,true);
+        });
+      } else if(mobileQuery && mobileQuery.addListener){
+        mobileQuery.addListener(function(event){
+          isMobile=event.matches;
+          metricsCache=null;
+          setActive(activeIndex,false,true);
+        });
+      }
 
       setActive(0,false);
       requestAnimationFrame(function(){
@@ -871,6 +981,35 @@
 
       panel.addEventListener('click',function(event){
         if(event.target===panel || event.target.closest('[data-admin-close]'))closePanel();
+      });
+
+      panel.addEventListener('keydown',function(event){
+        if(event.key==='Escape'){
+          event.preventDefault();
+          closePanel();
+          return;
+        }
+        if(event.key!=='Tab')return;
+        var focusables=Array.prototype.slice.call(panel.querySelectorAll([
+          'a[href]',
+          'button:not([disabled])',
+          'input:not([disabled])',
+          'textarea:not([disabled])',
+          'select:not([disabled])',
+          '[tabindex]:not([tabindex="-1"])'
+        ].join(','))).filter(function(el){
+          return !el.hidden && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+        });
+        if(!focusables.length)return;
+        var first=focusables[0];
+        var last=focusables[focusables.length-1];
+        if(event.shiftKey && document.activeElement===first){
+          event.preventDefault();
+          last.focus();
+        } else if(!event.shiftKey && document.activeElement===last){
+          event.preventDefault();
+          first.focus();
+        }
       });
 
       panel.querySelector('[data-admin-login]').addEventListener('submit',function(event){

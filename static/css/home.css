@@ -1,6 +1,6 @@
 .home{
   width:100%;
-  height:100%;
+  min-height:100dvh;
   background:#000;
   overflow:hidden;
 }
@@ -274,7 +274,7 @@
 }
 .boot-line{
   min-height:1.45em;font-size:clamp(.92rem,2vw,1.15rem);line-height:1.45;
-  letter-spacing:.03em;white-space:pre-wrap;
+  letter-spacing:.03em;white-space:pre-wrap;overflow-wrap:anywhere;
 }
 .boot-line.active::after{
   content:"";display:inline-block;width:.58em;height:1em;margin-left:.12em;
@@ -323,7 +323,7 @@
 .idle-line{
   position:relative;z-index:1;min-height:1.35em;
   font-size:clamp(1rem,3vw,1.35rem);line-height:1.45;
-  letter-spacing:.03em;
+  letter-spacing:.03em;overflow-wrap:anywhere;
 }
 .idle-line:last-of-type::after{
   content:"";display:inline-block;width:.58em;height:1em;margin-left:.12em;
@@ -388,7 +388,7 @@
 @media(max-width:760px){
   .tv-stage{padding:0}
   .tv-screen{inset:-1.4% -2.4%;border-radius:0}
-  .home-wrap{width:min(86vw,420px);padding:0 .8rem}
+  .home-wrap{top:46%;width:min(86vw,420px);padding:0 .8rem}
   .bar{min-height:3.1rem}
   .bar input[type=text]{font-size:16px;padding:.82em .88em}
   .bar input[type=submit]{padding:.82em .95em}
@@ -398,6 +398,21 @@
     max-height:min(36dvh,280px);
     padding:clamp(2rem,8vw,3.2rem) clamp(1.2rem,6vw,2.4rem);
   }
+}
+
+@media(max-height:430px){
+  .home-wrap{top:46%}
+  .boot-screen{
+    min-height:168px;
+    max-height:72dvh;
+    padding:2.2rem 1.2rem;
+  }
+  .boot-line{font-size:.82rem}
+  .idle-monitor{
+    min-height:190px;
+    padding:3.1rem 1.15rem 1.7rem;
+  }
+  .idle-resume{margin-top:1.35rem}
 }
 
 @media(prefers-reduced-motion:reduce){

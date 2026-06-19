@@ -8,6 +8,7 @@
   var started=false, frozen=false, loopActive=false;
   var raf=0, lastFrame=0, msgTimer=0, idleTimer=0, resizeTimer=0;
   var IDLE_MS=180000;
+  var reduceMotion=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if(document.body.classList.contains('home') && document.getElementById('boot')){
     document.body.classList.add('booting','ui-hidden');
@@ -36,8 +37,16 @@
       setTimeout(function(){
         bootEl.remove();
         startMatrix();
-        setTimeout(revealUi, 2000);
-      }, 950);
+        setTimeout(revealUi, reduceMotion ? 0 : 2000);
+      }, reduceMotion ? 120 : 950);
+    }
+
+    if(reduceMotion){
+      lines.forEach(function(line){
+        if(line.el)line.el.textContent=line.text;
+      });
+      setTimeout(finish, 120);
+      return;
     }
 
     function type(){
@@ -208,6 +217,12 @@
     started=true;
     document.body.classList.add('rain-arming');
     init();
+    if(reduceMotion){
+      tick();
+      document.body.classList.remove('rain-arming');
+      document.body.classList.add('rain-live');
+      return;
+    }
     injectMsg();
     startLoop();
     setTimeout(function(){
@@ -247,7 +262,13 @@
     overlay.addEventListener('click',function(e){
       if(e.target===overlay || e.target.closest('button'))reloadPage();
     });
-    window.addEventListener('keydown',reloadPage,{once:true});
+    function handleIdleKey(e){
+      if(!['Escape','Enter',' ','r','R'].includes(e.key))return;
+      e.preventDefault();
+      window.removeEventListener('keydown',handleIdleKey);
+      reloadPage();
+    }
+    window.addEventListener('keydown',handleIdleKey);
     var resume=overlay.querySelector('.idle-resume');
     if(resume)resume.focus({preventScroll:true});
   }

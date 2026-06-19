@@ -1,6 +1,17 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{background:#010501;color:#999;font-family:'Share Tech Mono',monospace;min-height:100%}
 body{min-height:100vh}
+.visually-hidden{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
 
 #mx{position:fixed;inset:0;z-index:0;opacity:1;transition:opacity 1.1s ease}
 .home #mx{opacity:0}
@@ -17,61 +28,61 @@ body{min-height:100vh}
   transparent 0,transparent 2px,rgba(0,0,0,.06) 2px,rgba(0,0,0,.06) 3px)}
 .signal{
   position:fixed;right:.7rem;bottom:.55rem;z-index:950;
-  color:#007021;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
-  min-width:14.4rem;min-height:1.55rem;text-align:right;
+  color:#007021;font-size:.68rem;letter-spacing:.08em;text-transform:none;
+  display:grid;
+  width:max-content;min-width:0;max-width:min(22rem,calc(100vw - 1.4rem));min-height:1.55rem;text-align:right;
   isolation:isolate;
-  padding:.25rem .42rem;
-  border:1px solid rgba(116,255,76,.16);
+  padding:.2rem .1rem;
+  border:0;
   border-radius:3px;
-  background:linear-gradient(180deg,rgba(1,12,3,.66),rgba(0,0,0,.28));
-  box-shadow:
-    inset 0 0 1rem rgba(109,255,74,.06),
-    0 0 1rem rgba(0,0,0,.46);
-  backdrop-filter:blur(1px);
-  -webkit-backdrop-filter:blur(1px);
+  background:transparent;
+  box-shadow:none;
 }
 .signal-item{
-  position:absolute;right:.42rem;bottom:.25rem;
+  position:relative;
+  grid-area:1 / 1;
+  justify-self:end;
+  align-self:end;
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
   opacity:0;transform:translateY(.35rem);filter:blur(2px);
   transition:opacity .62s ease,transform .62s ease,filter .62s ease,text-shadow .9s ease;
   white-space:nowrap;
   color:#00a032;
   text-shadow:
-    0 0 1px rgba(248,255,248,.75),
-    0 0 6px rgba(220,255,226,.45),
-    0 0 16px rgba(0,255,65,.5),
-    0 0 30px rgba(0,255,65,.3),
+    0 0 1px rgba(248,255,248,.45),
+    0 0 7px rgba(0,255,65,.32),
     0 0 1.2rem rgba(0,0,0,1);
 }
 .signal-item::before{
   content:attr(data-glow);
-  position:absolute;right:0;bottom:0;z-index:-1;
-  color:rgba(244,255,246,.72);
-  filter:blur(4px);
+  position:absolute;left:0;right:0;bottom:0;z-index:-1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:rgba(244,255,246,.42);
+  filter:blur(3px);
   text-shadow:
-    0 0 7px rgba(255,255,255,.55),
-    0 0 15px rgba(210,255,220,.48),
-    0 0 28px rgba(0,255,65,.38);
-  opacity:.9;
+    0 0 8px rgba(210,255,220,.26),
+    0 0 18px rgba(0,255,65,.24);
+  opacity:.62;
   pointer-events:none;
 }
 .signal-online{opacity:1;transform:translateY(0);filter:blur(0);animation:signal-glow .9s ease both}
 .signal.show-support .signal-online{opacity:0;transform:translateY(-.35rem);filter:blur(2px)}
 .signal-support{
-  color:#005f19;text-decoration:none;pointer-events:auto;
+  color:#317c3e;text-decoration:none;pointer-events:auto;
 }
 .signal-support strong{
-  color:#00ff41;font-weight:400;
+  color:#91ff82;font-weight:400;
   text-shadow:
-    0 0 2px rgba(240,255,242,.7),
-    0 0 9px rgba(175,255,175,.42),
-    0 0 18px rgba(0,255,65,.42),
-    0 0 32px rgba(0,255,65,.2);
+    0 0 2px rgba(240,255,242,.46),
+    0 0 9px rgba(0,255,65,.28);
 }
 .signal.show-support .signal-support{opacity:1;transform:translateY(0);filter:blur(0);animation:signal-glow .9s ease both}
 .signal-support:hover strong,
 .signal-support:focus-visible strong{color:#afffaf}
-.signal-support:focus-visible{outline:1px solid #00ff41;outline-offset:4px}
+.signal-support:focus-visible{outline:1px solid rgba(145,255,130,.72);outline-offset:3px}
 .booting .signal,
 .ui-hidden .signal{opacity:0}
 
@@ -296,7 +307,7 @@ body{min-height:100vh}
   .signal{
     right:.5rem;
     bottom:.45rem;
-    min-width:11.8rem;
+    max-width:calc(100vw - 1rem);
     font-size:.62rem;
   }
   .admin-panel{padding:.65rem}
@@ -326,5 +337,19 @@ body{min-height:100vh}
       0 0 16px rgba(0,255,65,.5),
       0 0 30px rgba(0,255,65,.3),
       0 0 1.2rem rgba(0,0,0,1);
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    scroll-behavior:auto!important;
+  }
+  #mx,.home #mx,.signal-item,.home-wrap,.boot,.carousel-slide,.movie-card{
+    transition:none!important;
+  }
+  .scan{
+    background:radial-gradient(ellipse at 50% 50%,transparent 0,transparent 62%,rgba(0,0,0,.32) 100%);
   }
 }

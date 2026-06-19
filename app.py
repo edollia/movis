@@ -572,6 +572,12 @@ def favicon_ico():
     return redirect("/favicon.png")
 
 
+@app.route("/apple-touch-icon.png")
+@app.route("/apple-touch-icon-precomposed.png")
+def apple_touch_icon_root():
+    return send_from_directory(app.static_folder, "apple-touch-icon.png", mimetype="image/png")
+
+
 @app.route("/cut2.mp3")
 def cut2_mp3():
     return send_from_directory(app.root_path, "CUT2.mp3", mimetype="audio/mpeg")
