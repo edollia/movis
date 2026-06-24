@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(PORT=8002 .venv/bin/python app.py)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8002/)"
+    ]
+  }
+}
