@@ -3,6 +3,13 @@ set -eu
 
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 VENV_DIR="$ROOT_DIR/.venv"
+
+if [ -f "$ROOT_DIR/.env" ]; then
+  set -a
+  . "$ROOT_DIR/.env"
+  set +a
+fi
+
 PORT="${PORT:-8002}"
 
 if [ ! -x "$VENV_DIR/bin/python" ]; then
