@@ -1,5 +1,5 @@
 """
-GoonToThis - PlayIMDb link implementation.
+GoonToThis - 67movies catalog-link implementation.
 """
 
 import json
@@ -7,19 +7,27 @@ import os
 import re
 import threading
 import time
-from urllib.parse import quote, urlencode
+from difflib import SequenceMatcher
+from urllib.parse import urlencode
 
 import requests
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_from_directory
 
 app = Flask(__name__)
 
-PLAY_IMDB_TITLE_BASE = "https://playimdb.com/title"
+MOVIE_SITE_BASE = os.environ.get("MOVIE_SITE_BASE", "https://67movies.net").rstrip("/")
+TMDB_API_BASE = "https://api.themoviedb.org/3"
+TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "").strip()
+SEARCH_FALLBACK_URL = os.environ.get(
+    "SEARCH_FALLBACK_URL",
+    f"{MOVIE_SITE_BASE}/api/semantic-search",
+).strip()
 CACHE_PATH = os.environ.get("CACHE_PATH", "/tmp/movis-cache.json")
 SETTINGS_PATH = os.environ.get("SETTINGS_PATH", os.path.join(app.root_path, ".runtime", "settings.json"))
-CACHE_SCHEMA_VERSION = 1
+CACHE_SCHEMA_VERSION = 2
 MAX_QUERY_LENGTH = 120
-IMDB_ID_RE = re.compile(r"^tt\d+$")
+TMDB_ID_RE = re.compile(r"^[1-9]\d*$")
 
 SITE_NAME = "GoonToThis"
 SITE_TITLE = "GoonToThis - Movies"
@@ -38,6 +46,10 @@ OG_IMAGE = f"{SITE_URL}/static/og-image.png"
 def add_cache_headers(response):
     if response.content_type and response.content_type.startswith("text/html"):
         response.headers["Cache-Control"] = "no-cache, max-age=0, must-revalidate"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
 DEFAULT_SITE_SETTINGS = {
@@ -50,24 +62,20 @@ DEFAULT_SITE_SETTINGS = {
     "support_url": "https://www.instagram.com/pawswirl/",
 }
 
-DEFAULT_SUPABASE_URL = "https://vmzovzgynijvpemcirqb.supabase.co"
-DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_l-sNpT6S5tP8U1pPeJfgzQ_HMTlNPSS"
-
 SUPABASE_URL = (
     os.environ.get("SUPABASE_URL")
     or os.environ.get("NEXT_PUBLIC_SUPABASE_URL")
-    or DEFAULT_SUPABASE_URL
+    or ""
 ).rstrip("/")
 SUPABASE_ANON_KEY = (
     os.environ.get("SUPABASE_ANON_KEY")
     or os.environ.get("SUPABASE_PUBLISHABLE_KEY")
     or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
-    or DEFAULT_SUPABASE_PUBLISHABLE_KEY
+    or ""
 )
-DEFAULT_ADMIN_USER_ID = "f7f96a98-985d-402f-9233-9cd0bc0439ce"
 ADMIN_USER_IDS = {
     user_id.strip().lower()
-    for user_id in os.environ.get("ADMIN_USER_IDS", DEFAULT_ADMIN_USER_ID).split(",")
+    for user_id in os.environ.get("ADMIN_USER_IDS", "").split(",")
     if user_id.strip()
 }
 RENDER_API_KEY = os.environ.get("RENDER_API_KEY", "").strip()
@@ -357,12 +365,20 @@ def save_cache():
         pass
 
 
-def valid_imdb_id(imdb_id):
-    return bool(IMDB_ID_RE.fullmatch(imdb_id or ""))
+def valid_tmdb_id(tmdb_id):
+    return bool(TMDB_ID_RE.fullmatch(str(tmdb_id or "")))
 
 
-def play_url(imdb_id):
-    return f"{PLAY_IMDB_TITLE_BASE}/{imdb_id}/"
+def play_url(tmdb_id, media_type="movie", season=1, episode=1):
+    if not valid_tmdb_id(tmdb_id):
+        raise ValueError("Invalid TMDB ID")
+
+    if media_type == "tv":
+        season = max(1, int(season))
+        episode = max(1, int(episode))
+        return f"{MOVIE_SITE_BASE}/watch/tv/{tmdb_id}/{season}/{episode}"
+
+    return f"{MOVIE_SITE_BASE}/watch/movie/{tmdb_id}"
 
 
 def with_play_urls(results):
@@ -370,10 +386,13 @@ def with_play_urls(results):
     for item in results:
         if not isinstance(item, dict):
             continue
-        imdb_id = item.get("id", "")
-        if not valid_imdb_id(imdb_id):
+        tmdb_id = item.get("id", "")
+        if not valid_tmdb_id(tmdb_id):
             continue
-        hydrated.append({**item, "play_url": play_url(imdb_id)})
+        media_type = item.get("media_type", "tv" if item.get("is_tv") else "movie")
+        if media_type not in {"movie", "tv"}:
+            continue
+        hydrated.append({**item, "play_url": play_url(tmdb_id, media_type)})
     return hydrated
 
 
@@ -510,46 +529,88 @@ def template_context(**extra):
     return base
 
 
-def search_imdb(query):
+def title_matches_query(query, item):
+    title = item.get("title") or item.get("name") or ""
+    normalized_query = re.sub(r"[^a-z0-9]+", " ", query.lower()).strip()
+    normalized_title = re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
+    if not normalized_query or not normalized_title:
+        return False
+    if normalized_query in normalized_title or normalized_title in normalized_query:
+        return True
+    return SequenceMatcher(None, normalized_query, normalized_title).ratio() >= 0.55
+
+
+def fetch_catalog_results(query):
+    if TMDB_API_KEY:
+        try:
+            res = requests.get(
+                f"{TMDB_API_BASE}/search/multi",
+                params={
+                    "api_key": TMDB_API_KEY,
+                    "query": query,
+                    "include_adult": "false",
+                    "language": "en-US",
+                    "page": 1,
+                },
+                timeout=10,
+                headers={"User-Agent": "Mozilla/5.0"},
+            )
+            res.raise_for_status()
+            data = res.json()
+            if isinstance(data, dict) and isinstance(data.get("results"), list):
+                return data["results"]
+        except Exception as e:
+            app.logger.warning("Primary catalog search failed for %r: %s", query, e)
+
+    if not SEARCH_FALLBACK_URL:
+        return []
+
+    try:
+        res = requests.get(
+            SEARCH_FALLBACK_URL,
+            params={"q": query},
+            timeout=10,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        res.raise_for_status()
+        data = res.json()
+        if not isinstance(data, dict) or not isinstance(data.get("results"), list):
+            return []
+        return [item for item in data["results"] if title_matches_query(query, item)]
+    except Exception as e:
+        app.logger.warning("Fallback catalog search failed for %r: %s", query, e)
+        return []
+
+
+def search_movies(query):
     normalized_query = query.strip()[:MAX_QUERY_LENGTH]
     key = search_cache_key(normalized_query)
     cached = cached_search(key)
     if cached is not None:
         return cached
 
-    q = quote(normalized_query.lower())
-    ch = normalized_query[0].lower() if normalized_query else "a"
-    if not ch.isascii() or not ch.isalnum():
-        ch = "a"
-
-    try:
-        res = requests.get(
-            f"https://v2.sg.media-imdb.com/suggestion/{ch}/{q}.json",
-            timeout=10,
-            headers={"User-Agent": "Mozilla/5.0"},
-        )
-        res.raise_for_status()
-        data = res.json()
-    except Exception as e:
-        app.logger.warning("Search failed for %r: %s", normalized_query, e)
-        return []
-
     results = []
-    for item in data.get("d", []):
-        imdb_id = item.get("id", "")
-        if not valid_imdb_id(imdb_id):
+    for item in fetch_catalog_results(normalized_query):
+        if not isinstance(item, dict):
+            continue
+        media_type = item.get("media_type", "")
+        tmdb_id = item.get("id", "")
+        if media_type not in {"movie", "tv"} or not valid_tmdb_id(tmdb_id):
             continue
 
-        img = item.get("i", {})
-        media_type = item.get("q", "")
+        is_tv = media_type == "tv"
+        title = item.get("name", "") if is_tv else item.get("title", "")
+        release_date = item.get("first_air_date", "") if is_tv else item.get("release_date", "")
+        poster_path = item.get("poster_path", "")
         results.append({
-            "id": imdb_id,
-            "title": item.get("l", ""),
-            "year": str(item.get("y", "")),
-            "poster": img.get("imageUrl", "") if isinstance(img, dict) else "",
-            "type": media_type,
-            "is_tv": "series" in media_type.lower() or "mini" in media_type.lower(),
-            "play_url": play_url(imdb_id),
+            "id": tmdb_id,
+            "title": title,
+            "year": release_date[:4] if release_date else "",
+            "poster": f"{TMDB_IMAGE_BASE}{poster_path}" if poster_path else "",
+            "type": "TV series" if is_tv else "Movie",
+            "media_type": media_type,
+            "is_tv": is_tv,
+            "play_url": play_url(tmdb_id, media_type),
         })
 
     remember_search(key, results)
@@ -677,7 +738,7 @@ def search():
         "results.html",
         **template_context(
             q=q,
-            results=search_imdb(q),
+            results=search_movies(q),
             page_title=page_title,
             page_description=page_description,
             canonical_url=f"{SITE_URL}{query_path}",
@@ -685,25 +746,26 @@ def search():
     )
 
 
-@app.route("/play/<imdb_id>")
-def play(imdb_id):
-    if not valid_imdb_id(imdb_id):
+@app.route("/play/<tmdb_id>")
+def play(tmdb_id):
+    if not valid_tmdb_id(tmdb_id):
         abort(404)
-    return redirect(play_url(imdb_id))
+    media_type = "tv" if request.args.get("type") == "tv" else "movie"
+    return redirect(play_url(tmdb_id, media_type))
 
 
-@app.route("/tv/<imdb_id>")
-def tv_detail(imdb_id):
-    if not valid_imdb_id(imdb_id):
+@app.route("/tv/<tmdb_id>")
+def tv_detail(tmdb_id):
+    if not valid_tmdb_id(tmdb_id):
         abort(404)
-    return redirect(play_url(imdb_id))
+    return redirect(play_url(tmdb_id, "tv"))
 
 
-@app.route("/watch-tv/<imdb_id>/<int:season>/<int:episode>")
-def watch_tv(imdb_id, season, episode):
-    if not valid_imdb_id(imdb_id):
+@app.route("/watch-tv/<tmdb_id>/<int:season>/<int:episode>")
+def watch_tv(tmdb_id, season, episode):
+    if not valid_tmdb_id(tmdb_id):
         abort(404)
-    return redirect(play_url(imdb_id))
+    return redirect(play_url(tmdb_id, "tv", season, episode))
 
 
 if __name__ == "__main__":
