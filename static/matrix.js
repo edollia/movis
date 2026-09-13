@@ -22,7 +22,7 @@
       revealUi();
       return;
     }
-    var firstLine=bootEl.getAttribute('data-line-one') || 'Knock, knock, Neo.';
+    var firstLine=bootEl.getAttribute('data-line-one') || 'uhhh';
     var secondLine=bootEl.getAttribute('data-line-two') || 'Have you gooned today?';
     var lines=[
       {el:document.getElementById('boot-line-1'), text:firstLine},

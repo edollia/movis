@@ -54,7 +54,7 @@ def add_cache_headers(response):
 
 DEFAULT_SITE_SETTINGS = {
     "show_loading_screen": True,
-    "loading_line_1": "Knock, knock, Neo.",
+    "loading_line_1": "uhhh",
     "loading_line_2": "Have you gooned today?",
     "show_signal_support": True,
     "support_label": "support",
