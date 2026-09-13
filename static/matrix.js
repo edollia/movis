@@ -23,7 +23,7 @@
       return;
     }
     var firstLine=bootEl.getAttribute('data-line-one') || 'uhhh';
-    var secondLine=bootEl.getAttribute('data-line-two') || 'Have you gooned today?';
+    var secondLine=bootEl.getAttribute('data-line-two') || 'hi.';
     var lines=[
       {el:document.getElementById('boot-line-1'), text:firstLine},
       {el:document.getElementById('boot-line-2'), text:secondLine, pauseAfter:secondLine.replace(/[?.!]+$/,'')}

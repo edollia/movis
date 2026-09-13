@@ -55,7 +55,7 @@ def add_cache_headers(response):
 DEFAULT_SITE_SETTINGS = {
     "show_loading_screen": True,
     "loading_line_1": "uhhh",
-    "loading_line_2": "Have you gooned today?",
+    "loading_line_2": "hi.",
     "show_signal_support": True,
     "support_label": "support",
     "support_handle": "@pawswirl",
