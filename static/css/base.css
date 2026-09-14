@@ -30,7 +30,7 @@ body{min-height:100vh}
   position:fixed;right:.7rem;bottom:.55rem;z-index:950;
   color:#007021;font-size:.68rem;letter-spacing:.08em;text-transform:none;
   display:grid;
-  width:max-content;min-width:0;max-width:min(22rem,calc(100vw - 1.4rem));min-height:1.55rem;text-align:right;
+  width:max-content;min-width:0;max-width:min(22rem,calc(100vw - 1.4rem));min-height:44px;text-align:right;
   isolation:isolate;
   padding:.2rem .1rem;
   border:0;
@@ -71,7 +71,7 @@ body{min-height:100vh}
 .signal-online{opacity:1;transform:translateY(0);filter:blur(0);animation:signal-glow .9s ease both}
 .signal.show-support .signal-online{opacity:0;transform:translateY(-.35rem);filter:blur(2px)}
 .signal-support{
-  color:#317c3e;text-decoration:none;pointer-events:auto;
+  min-height:44px;display:flex;align-items:center;color:#317c3e;text-decoration:none;pointer-events:auto;
 }
 .signal-support strong{
   color:#91ff82;font-weight:400;

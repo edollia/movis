@@ -14,26 +14,34 @@
       </form>
     </section>
     {% if results %}
-      <section class="deck" data-carousel aria-label="Search results carousel">
-        <p class="visually-hidden" id="carousel-help">Use left and right arrow keys to move through results. Press Enter to open the active result.</p>
+      <section class="deck" data-carousel aria-label="Search results" aria-roledescription="carousel" aria-describedby="carousel-help">
+        <p class="visually-hidden" id="carousel-help">Use left and right arrow keys to move one result, or Page Up and Page Down to move five. Press Enter to watch the active result. Press slash to return to search.</p>
         <div class="deck-head">
+          <p class="deck-summary" data-result-total>{{ results|length }} {{ "result" if results|length == 1 else "results" }}</p>
           <div class="deck-controls" aria-label="Carousel controls">
-            <button type="button" class="deck-btn" data-carousel-prev aria-label="Previous result">‹</button>
-            <span class="deck-count" data-carousel-count aria-live="polite">1 / {{ results|length }}</span>
-            <button type="button" class="deck-btn" data-carousel-next aria-label="Next result">›</button>
+            <button type="button" class="deck-btn" data-carousel-prev aria-label="Previous result" title="Previous result (Left arrow)">‹</button>
+            <span class="deck-count" data-carousel-count aria-hidden="true">1 / {{ results|length }}</span>
+            <button type="button" class="deck-btn" data-carousel-next aria-label="Next result" title="Next result (Right arrow)">›</button>
+            {% if results|length > 1 %}
+              <label class="deck-scrubber">
+                <span class="visually-hidden">Jump to a search result</span>
+                <input type="range" min="1" max="{{ results|length }}" value="1" step="1" data-carousel-range aria-label="Jump to result 1 of {{ results|length }}">
+              </label>
+            {% endif %}
           </div>
+          <p class="visually-hidden" data-carousel-status aria-live="polite" aria-atomic="true"></p>
         </div>
         <div class="deck-stage" data-deck-stage>
-          <ol class="carousel-track" data-carousel-track tabindex="0" aria-describedby="carousel-help">
+          <ol class="carousel-track" data-carousel-track tabindex="0" aria-label="Search result cards">
           {% for m in results %}
             {% set movie_title = m.title or "Unknown title" %}
-            <li class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide data-slide-index="{{ loop.index0 }}" data-pos="{{ loop.index0 if loop.index0 <= 4 else 4 }}" aria-label="Result {{ loop.index }} of {{ results|length }}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
+            <li id="search-result-{{ loop.index }}" class="carousel-slide{% if loop.first %} is-active-slide is-visible{% elif loop.index <= 4 %} is-visible{% else %} is-far{% endif %}" data-slide data-slide-index="{{ loop.index0 }}" data-pos="{{ loop.index0 if loop.index0 <= 4 else 4 }}" role="group" aria-roledescription="slide" aria-label="Result {{ loop.index }} of {{ results|length }}: {{ movie_title }}{% if m.year %}, {{ m.year }}{% endif %}{% if m.type %}, {{ m.type }}{% endif %}" style="--d: {{ 700 if loop.index0 > 12 else loop.index0 * 55 }}ms">
             <article class="movie-card{% if loop.first %} is-active{% endif %}" data-movie-card>
               <div class="movie-face movie-front">
-                <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Open {{ movie_title }}" draggable="false"></a>
+                <a class="card-hit" href="{{ m.play_url }}" data-card-hit aria-label="Watch {{ movie_title }}{% if m.year %}, {{ m.year }}{% endif %}" draggable="false"></a>
                 <div class="poster-stage{% if m.poster %} has-poster poster-loading{% else %} poster-missing{% endif %}">
                   {% if m.poster %}
-                    <img src="{{ m.poster }}" alt="{{ movie_title }} poster" loading="{{ 'eager' if loop.index <= 4 else 'lazy' }}" decoding="async" draggable="false"{% if loop.first %} fetchpriority="high"{% endif %} data-poster-img>
+                    <img src="{{ m.poster }}" alt="{{ movie_title }} poster" loading="{{ 'eager' if loop.index <= 2 else 'lazy' }}" decoding="async" draggable="false"{% if loop.first %} fetchpriority="high"{% endif %} data-poster-img>
                   {% endif %}
                   <div class="poster-fallback">film</div>
                   <div class="pick-rank">#{{ "%02d"|format(loop.index) }}</div>

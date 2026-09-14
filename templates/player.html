@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block body_class %}player-page{% endblock %}
+
+{% block body %}
+  <div class="player-ambient" aria-hidden="true">
+    {% if poster %}<img src="{{ poster }}" alt="" decoding="async">{% endif %}
+  </div>
+  <div class="scan"></div>
+
+  <main class="watch-shell" data-media-player data-media-type="{{ media_type }}" data-tmdb-id="{{ tmdb_id }}" data-season="{{ season }}" data-episode="{{ episode }}" data-title="{{ title }}" data-year="{{ year }}" data-poster="{{ poster }}">
+    <header class="watch-header">
+      <a class="watch-back" href="/search?q={{ title|urlencode }}" aria-label="Back to search results">
+        <span aria-hidden="true">←</span> results
+      </a>
+      <span class="watch-secure"><i aria-hidden="true"></i> in-site player</span>
+    </header>
+
+    <section class="watch-layout" aria-labelledby="watch-title">
+      <div class="watch-main">
+        <div class="player-frame" data-player-frame>
+          <div class="player-topline">
+            <span>NOW PLAYING</span>
+            <span>{% if media_type == "tv" %}S{{ "%02d"|format(season) }} · E{{ "%02d"|format(episode) }}{% else %}MOVIE{% endif %}</span>
+          </div>
+          <div class="player-ratio" data-player-fullscreen-target>
+            <iframe
+              data-provider-frame
+              src="{{ embed_url }}"
+              title="{{ title }}{% if media_type == 'tv' %} season {{ season }} episode {{ episode }}{% endif %} player"
+              allow="autoplay; picture-in-picture; encrypted-media"
+              referrerpolicy="no-referrer"
+              loading="eager"></iframe>
+            <div class="player-loading" data-player-loading role="status" aria-live="polite">
+              <span class="player-spinner" aria-hidden="true"></span>
+              <strong>connecting</strong>
+            </div>
+            <button class="player-fullscreen-proxy" type="button" data-fullscreen-player aria-label="Enter fullscreen" title="Enter fullscreen"></button>
+          </div>
+          <div class="player-actions">
+            <p data-player-status><i aria-hidden="true"></i> connecting</p>
+          </div>
+        </div>
+
+        {% if media_type == "tv" %}<div class="episode-nav" aria-label="Episode navigation">
+          {% if previous_url %}
+            <a data-previous-episode href="{{ previous_url }}"><span aria-hidden="true">←</span> previous</a>
+          {% else %}
+            <span class="episode-nav-disabled" aria-disabled="true"><span aria-hidden="true">←</span> previous</span>
+          {% endif %}
+          <form class="episode-picker{% if episodes %} is-auto{% endif %}" data-episode-picker>
+            <label>
+              <span>season</span>
+              <select name="season" data-season-picker aria-label="Season">
+                {% for number in range(1, season_count + 1) %}
+                  <option value="{{ number }}"{% if number == season %} selected{% endif %}>Season {{ number }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>
+              <span>episode</span>
+              {% if episodes %}
+                <select name="episode" data-episode-picker-input aria-label="Episode">
+                  {% for item in episodes %}
+                    <option value="{{ item.number }}"{% if item.number == episode %} selected{% endif %}>E{{ item.number }} — {{ item.name }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input name="episode" data-episode-picker-input type="number" min="1" max="9999" value="{{ episode }}" inputmode="numeric" aria-label="Episode">
+              {% endif %}
+            </label>
+            {% if not episodes %}<button type="submit">play episode</button>{% endif %}
+          </form>
+          {% if next_url %}
+            <a data-next-episode href="{{ next_url }}">next <span aria-hidden="true">→</span></a>
+          {% else %}
+            <span class="episode-nav-disabled" aria-disabled="true">next <span aria-hidden="true">→</span></span>
+          {% endif %}
+        </div>{% endif %}
+      </div>
+
+      <aside class="show-panel">
+        {% if poster %}
+          <img class="show-poster" src="{{ poster }}" alt="{{ title }} poster" decoding="async">
+        {% else %}
+          <div class="show-poster show-poster-missing" aria-hidden="true">TV</div>
+        {% endif %}
+        <p class="show-kicker">{{ "TV SERIES" if media_type == "tv" else "MOVIE" }}{% if show_status %} · {{ show_status }}{% endif %}</p>
+        <h1 id="watch-title">{{ title }}</h1>
+        <p class="show-meta">
+          {% if year %}<span>{{ year }}</span>{% endif %}
+          {% if media_type == "tv" %}<span>Season {{ season }}</span>
+          <span>Episode {{ episode }}</span>{% endif %}
+        </p>
+        {% if genres %}<p class="show-genres">{{ genres|join(" · ") }}</p>{% endif %}
+        {% if overview %}<p class="show-overview">{{ overview }}</p>{% endif %}
+        <div class="show-fallback">
+          <strong>Player not starting?</strong>
+          <p><button type="button" class="show-reload" data-reload-player>Reload it.</button> or <a href="{{ external_url }}" target="_blank" rel="noopener noreferrer">open here ↗</a></p>
+        </div>
+      </aside>
+    </section>
+  </main>
+  {% include "_signal.html" %}
+{% endblock %}
+
+{% block scripts %}
+  <script defer src="{{ url_for('static', filename='player.js') }}?v=8"></script>
+{% endblock %}

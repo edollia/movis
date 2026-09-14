@@ -116,8 +116,11 @@
       var prev=carousel.querySelector('[data-carousel-prev]');
       var next=carousel.querySelector('[data-carousel-next]');
       var count=carousel.querySelector('[data-carousel-count]');
+      var range=carousel.querySelector('[data-carousel-range]');
+      var status=carousel.querySelector('[data-carousel-status]');
       var stage=carousel.querySelector('[data-deck-stage]');
       var mobileQuery=window.matchMedia ? window.matchMedia('(max-width: 760px)') : null;
+      var reducedMotionQuery=window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
       var isMobile=mobileQuery ? mobileQuery.matches : false;
       var activeIndex=0;
       var dragStartX=0;
@@ -137,8 +140,10 @@
       var resizeTimer=0;
       var wheelIdleTimer=0;
       var wheelAccum=0;
-      var wheelFrame=0;
-      var pendingWheelSteps=0;
+      var wheelGestureCommitted=false;
+      var wheelGestureDirection=0;
+      var wheelCommittedAt=0;
+      var wheelTailMagnitude=0;
       var rushTimer=0;
       var jumpTimer=0;
       var metricsCache=null;
@@ -189,7 +194,7 @@
         var spread=isMobile ? .34 : .48;
         var divisor=isMobile ? 3.4 : 2.55;
         var side=Math.min(cardWidth*spread,Math.max(isMobile ? 54 : 78,(stageWidth-cardWidth)/divisor));
-        var swipeUnit=Math.max(side*(isMobile ? 1.48 : 1.22),cardWidth*(isMobile ? .62 : .38));
+        var swipeUnit=Math.max(side*(isMobile ? 1.62 : 1.22),cardWidth*(isMobile ? .72 : .38));
         metricsCache={side:side,cardWidth:cardWidth,swipeUnit:swipeUnit};
         return metricsCache;
       }
@@ -262,6 +267,11 @@
           var delta=i-index+progress;
           setSlideFlag(model,'is-active-slide',isActive);
           setSlideFlag(model,'is-jumpable-slide',!isActive && Math.abs(settledDelta)<=3);
+          if(isActive){
+            slide.setAttribute('aria-current','true');
+          } else {
+            slide.removeAttribute('aria-current');
+          }
           var ariaHidden=isActive ? 'false' : 'true';
           if(model.styles.ariaHidden!==ariaHidden){
             model.styles.ariaHidden=ariaHidden;
@@ -295,10 +305,13 @@
       }
 
       function cancelQueuedWheel(){
-        if(!wheelFrame)return;
-        cancelAnimationFrame(wheelFrame);
-        wheelFrame=0;
-        pendingWheelSteps=0;
+        clearTimeout(wheelIdleTimer);
+        wheelIdleTimer=0;
+        wheelAccum=0;
+        wheelGestureCommitted=false;
+        wheelGestureDirection=0;
+        wheelCommittedAt=0;
+        wheelTailMagnitude=0;
       }
 
       function queueDeckLayout(progress,motionLevel){
@@ -323,13 +336,24 @@
           jumpTimer=setTimeout(function(){
             carousel.removeAttribute('data-jump');
           },jumpDistance>1 || fast ? 340 : 240);
-          markRushing(jumpDistance>1 || fast ? 300 : 220);
+          markRushing(jumpDistance>1 || fast ? 460 : 420);
         }
         activeIndex=nextIndex;
         dragProgress=0;
         carousel.classList.remove('is-dragging');
         applyDeckLayout(activeIndex,0,0);
         if(count)count.textContent=(activeIndex+1)+' / '+slides.length;
+        if(range){
+          range.value=String(activeIndex+1);
+          range.setAttribute('aria-label','Jump to result '+(activeIndex+1)+' of '+slides.length);
+          var activeLink=slideModels[activeIndex].hit;
+          if(activeLink)range.setAttribute('aria-valuetext',(activeIndex+1)+' of '+slides.length+', '+activeLink.getAttribute('aria-label'));
+        }
+        if(status && changed){
+          var selectedLink=slideModels[activeIndex].hit;
+          status.textContent='Result '+(activeIndex+1)+' of '+slides.length+'. '+(selectedLink ? selectedLink.getAttribute('aria-label') : 'Selected');
+        }
+        track.setAttribute('aria-label','Search result cards, result '+(activeIndex+1)+' of '+slides.length+' active');
         if(prev)prev.disabled=activeIndex===0;
         if(next)next.disabled=activeIndex===slides.length-1;
         if(focusTrack){
@@ -356,6 +380,10 @@
       function launchCard(card,href){
         function go(){
           window.location.href=href;
+        }
+        if(reducedMotionQuery && reducedMotionQuery.matches){
+          go();
+          return;
         }
         if(launching){
           go();
@@ -428,7 +456,7 @@
 
         if(index!==activeIndex){
           selectIndex(index,Math.abs(index-activeIndex)>1);
-          launchDelayTimer=setTimeout(openSelectedSlide,190);
+          launchDelayTimer=setTimeout(openSelectedSlide,reducedMotionQuery && reducedMotionQuery.matches ? 0 : 190);
         } else {
           openSelectedSlide();
         }
@@ -442,6 +470,12 @@
           handled=true;
         } else if(event.key==='ArrowRight'){
           scrollToIndex(activeIndex+1);
+          handled=true;
+        } else if(event.key==='PageUp'){
+          scrollToIndex(activeIndex-5,true);
+          handled=true;
+        } else if(event.key==='PageDown'){
+          scrollToIndex(activeIndex+5,true);
           handled=true;
         } else if(event.key==='Home'){
           scrollToIndex(0);
@@ -469,11 +503,23 @@
         } else if(event.key==='ArrowRight'){
           event.preventDefault();
           scrollToIndex(activeIndex+1);
+        } else if(event.key==='/' && !event.metaKey && !event.ctrlKey && !event.altKey){
+          var searchInput=document.getElementById('results-query');
+          if(searchInput){
+            event.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+          }
         }
       });
 
       if(prev)prev.addEventListener('click',function(){ selectIndex(activeIndex-1,true); });
       if(next)next.addEventListener('click',function(){ selectIndex(activeIndex+1,true); });
+      if(range){
+        range.addEventListener('input',function(){
+          selectIndex(Number(range.value)-1,true);
+        });
+      }
 
       slideModels.forEach(function(model){
         if(model.card)syncCardControls(model.card,model.hit);
@@ -603,8 +649,8 @@
         var tapThreshold=isMobile ? 10 : 7;
         var dragThreshold=isMobile ? 14 : 9;
         var horizontalRatio=isMobile ? 1.28 : 1.14;
-        var velocityProjection=isMobile ? 120 : 260;
-        var stepThreshold=isMobile ? .34 : .22;
+        var velocityProjection=isMobile ? 70 : 210;
+        var stepThreshold=isMobile ? .38 : .24;
         var pointerMoved=Math.sqrt(dx*dx+dy*dy)>tapThreshold;
         var horizontalMoved=Math.abs(dx)>dragThreshold && Math.abs(dx)>Math.abs(dy)*horizontalRatio;
         var projected=-finalProgress+(-dragVelocityX*velocityProjection/metrics.swipeUnit);
@@ -717,18 +763,6 @@
         };
       }
 
-      function queueWheelSteps(steps){
-        pendingWheelSteps=clamp(pendingWheelSteps+steps,-6,6);
-        if(wheelFrame)return;
-        wheelFrame=requestAnimationFrame(function(){
-          var queued=pendingWheelSteps;
-          wheelFrame=0;
-          pendingWheelSteps=0;
-          if(!queued)return;
-          selectIndex(activeIndex+queued,Math.abs(queued)>1);
-        });
-      }
-
       function wheelTargetAllowed(target){
         if(!target)return true;
         if(target.nodeType!==1)target=target.parentElement;
@@ -745,17 +779,40 @@
         if(globalGuard && !info.horizontal)return;
         event._movisDeckWheel=true;
         event.preventDefault();
-        wheelAccum+=info.delta;
+
         clearTimeout(wheelIdleTimer);
         wheelIdleTimer=setTimeout(function(){
           wheelAccum=0;
-        },110);
-        var threshold=Math.max(42,deckMetrics().cardWidth*.14);
-        var steps=wheelAccum>0 ? Math.floor(wheelAccum/threshold) : Math.ceil(wheelAccum/threshold);
-        if(!steps)return;
-        steps=clamp(steps,-6,6);
-        wheelAccum-=steps*threshold;
-        queueWheelSteps(steps);
+          wheelGestureCommitted=false;
+          wheelGestureDirection=0;
+          wheelCommittedAt=0;
+          wheelTailMagnitude=0;
+          wheelIdleTimer=0;
+        },240);
+
+        var direction=Math.sign(info.delta);
+        var magnitude=Math.abs(info.delta);
+        var now=event.timeStamp || performance.now();
+        if(wheelGestureCommitted){
+          var reversed=direction!==wheelGestureDirection && magnitude>=18;
+          var renewedBurst=(now-wheelCommittedAt)>=90 && magnitude>=Math.max(24,wheelTailMagnitude*1.55);
+          wheelTailMagnitude=magnitude;
+          if(!reversed && !renewedBurst)return;
+          wheelGestureCommitted=false;
+          wheelAccum=0;
+        }
+
+        if(wheelAccum && Math.sign(wheelAccum)!==Math.sign(info.delta))wheelAccum=0;
+        wheelAccum+=info.delta;
+        var threshold=Math.max(52,deckMetrics().cardWidth*.16);
+        if(Math.abs(wheelAccum)<threshold)return;
+
+        wheelGestureCommitted=true;
+        wheelGestureDirection=wheelAccum>0 ? 1 : -1;
+        wheelCommittedAt=now;
+        wheelTailMagnitude=magnitude;
+        selectIndex(activeIndex+wheelGestureDirection,false);
+        wheelAccum=0;
       }
 
       carousel.addEventListener('wheel',function(event){
