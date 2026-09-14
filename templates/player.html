@@ -35,7 +35,7 @@
               <span class="player-spinner" aria-hidden="true"></span>
               <strong>connecting</strong>
             </div>
-            <button class="player-fullscreen-proxy" type="button" data-fullscreen-player aria-label="Enter fullscreen" title="Enter fullscreen"></button>
+            <button class="player-fullscreen-proxy" type="button" data-fullscreen-player aria-label="Fullscreen" title="Fullscreen"></button>
           </div>
           <div class="player-actions">
             <p data-player-status><i aria-hidden="true"></i> connecting</p>
@@ -105,5 +105,5 @@
 {% endblock %}
 
 {% block scripts %}
-  <script defer src="{{ url_for('static', filename='player.js') }}?v=8"></script>
+  <script defer src="{{ url_for('static', filename='player.js') }}?v=10"></script>
 {% endblock %}

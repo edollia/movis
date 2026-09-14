@@ -92,8 +92,8 @@
   z-index:6;
   right:0;
   bottom:0;
-  width:52px;
-  height:48px;
+  width:56px;
+  height:64px;
   margin:0;
   padding:0;
   border:0;
@@ -102,7 +102,7 @@
   color:transparent;
   cursor:pointer;
 }
-.player-fullscreen-proxy:focus-visible{outline:2px solid #baffaa;outline-offset:-4px}
+.player-fullscreen-proxy:focus-visible{outline:2px solid #baffaa;outline-offset:-5px}
 .player-loading{
   position:absolute;
   inset:0;
@@ -220,6 +220,7 @@
   .watch-header{margin:0 .75rem .75rem;grid-template-columns:1fr auto}
   .watch-secure{display:none}
   .player-frame{border-left:0;border-right:0;border-radius:0}
+  .player-ratio{height:clamp(340px,62dvh,520px);aspect-ratio:auto}
   .player-topline{min-height:2.3rem;padding:.45rem .7rem}
   .player-actions{padding:.4rem .55rem;align-items:center}
   .player-actions p{font-size:.59rem;max-width:100%}
@@ -229,6 +230,9 @@
   .show-panel{margin:0 .75rem;grid-template-columns:82px 1fr;padding:.8rem}
   .show-panel h1{font-size:1.8rem}
   .show-overview{grid-column:1/-1}
+}
+@media(max-width:900px) and (orientation:landscape){
+  .player-ratio{height:calc(100dvh - 5rem);min-height:260px;aspect-ratio:auto}
 }
 @media(max-width:420px){
   .episode-picker,.episode-picker.is-auto{grid-template-columns:1fr}
