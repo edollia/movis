@@ -12,7 +12,10 @@
   var pickerForm=root.querySelector('[data-episode-picker]');
   var reloadButton=root.querySelector('[data-reload-player]');
   var fullscreenButton=root.querySelector('[data-fullscreen-player]');
+  var fullscreenLabel=root.querySelector('[data-fullscreen-label]');
   var fullscreenTarget=root.querySelector('[data-player-fullscreen-target]');
+  var pseudoFullscreen=false;
+  var fullscreenCheckTimer=0;
   var loadTimer=0;
   var providerOrigin='https://player.vidlove.cc';
 
@@ -112,36 +115,63 @@
 
   function syncFullscreenButton(){
     if(!fullscreenButton)return;
-    var active=currentFullscreenElement()===fullscreenTarget;
+    var active=currentFullscreenElement()===fullscreenTarget || pseudoFullscreen;
     var label=active ? 'Exit fullscreen' : 'Enter fullscreen';
     fullscreenButton.setAttribute('aria-label',label);
     fullscreenButton.setAttribute('title',label);
+    fullscreenButton.setAttribute('aria-pressed',active ? 'true' : 'false');
     fullscreenButton.classList.toggle('is-active',active);
+    if(fullscreenLabel)fullscreenLabel.textContent=active ? 'exit' : 'fullscreen';
+  }
+
+  function setPseudoFullscreen(active){
+    pseudoFullscreen=!!active;
+    fullscreenTarget.classList.toggle('is-pseudo-fullscreen',pseudoFullscreen);
+    document.body.classList.toggle('has-pseudo-fullscreen',pseudoFullscreen);
+    syncFullscreenButton();
+  }
+
+  function enterPseudoFullscreen(){
+    if(!currentFullscreenElement())setPseudoFullscreen(true);
   }
 
   if(fullscreenButton && fullscreenTarget){
     fullscreenButton.addEventListener('click',function(){
+      window.clearTimeout(fullscreenCheckTimer);
       if(currentFullscreenElement()===fullscreenTarget){
         var exit=document.exitFullscreen || document.webkitExitFullscreen;
         if(exit)exit.call(document);
+        return;
+      }
+      if(pseudoFullscreen){
+        setPseudoFullscreen(false);
         return;
       }
       var enter=fullscreenTarget.requestFullscreen || fullscreenTarget.webkitRequestFullscreen;
       if(enter){
         try{
           var request=enter.call(fullscreenTarget);
-          if(request && request.catch)request.catch(function(){});
-        }catch(e){}
+          if(request && request.catch)request.catch(enterPseudoFullscreen);
+          fullscreenCheckTimer=window.setTimeout(enterPseudoFullscreen,500);
+        }catch(e){enterPseudoFullscreen();}
+      }else{
+        enterPseudoFullscreen();
       }
     });
-    document.addEventListener('fullscreenchange',syncFullscreenButton);
-    document.addEventListener('webkitfullscreenchange',syncFullscreenButton);
+    function onFullscreenChange(){
+      window.clearTimeout(fullscreenCheckTimer);
+      if(currentFullscreenElement())setPseudoFullscreen(false);
+      syncFullscreenButton();
+    }
+    document.addEventListener('fullscreenchange',onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange',onFullscreenChange);
     syncFullscreenButton();
   }
 
   document.addEventListener('keydown',function(event){
     var target=event.target;
     if(target && /INPUT|SELECT|TEXTAREA/.test(target.tagName))return;
+    if(event.key==='Escape' && pseudoFullscreen)setPseudoFullscreen(false);
     if((event.key==='r' || event.key==='R') && reloadButton)reloadButton.click();
   });
 

@@ -107,7 +107,7 @@ def add_cache_headers(response):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = (
-        "camera=(), microphone=(), geolocation=(), fullscreen=(self)"
+        'camera=(), microphone=(), geolocation=(), fullscreen=(self "https://player.vidlove.cc")'
     )
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
@@ -558,7 +558,9 @@ def provider_embed_url(tmdb_id, season=1, episode=1):
     options = urlencode({
         "primarycolor": "ff4d6d",
         "secondarycolor": "c49de8",
-        "server": "Archer Queen",
+        # Keep VidLove in automatic source selection. Pinning a named source
+        # can cap a title at 480p even when another source offers 1080p.
+        "server": "auto",
         "hideserver": "true",
         "autoplay": "true",
         "autonext": "false",
@@ -578,7 +580,9 @@ def provider_movie_embed_url(tmdb_id):
     options = urlencode({
         "primarycolor": "ff4d6d",
         "secondarycolor": "c49de8",
-        "server": "Archer Queen",
+        # Keep VidLove in automatic source selection. Pinning a named source
+        # can cap a title at 480p even when another source offers 1080p.
+        "server": "auto",
         "hideserver": "true",
         "autoplay": "true",
         "autonext": "false",

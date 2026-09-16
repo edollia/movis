@@ -324,15 +324,15 @@ class PlayerRouteTests(unittest.TestCase):
         self.assertIn("https://player.vidlove.cc/embed/movie/27205?", html)
         self.assertIn("primarycolor=ff4d6d", html)
         self.assertIn("secondarycolor=c49de8", html)
-        self.assertIn("server=Archer+Queen", html)
+        self.assertIn("server=auto", html)
         self.assertIn("hideserver=true", html)
         self.assertIn("autonext=false", html)
         self.assertIn("hidenextbutton=true", html)
         self.assertIn("https://67movies.net/watch/movie/27205", html)
         self.assertIn("data-provider-frame", html)
         self.assertNotIn("sandbox=", html)
-        self.assertNotIn("allowfullscreen", html)
-        self.assertNotIn("autoplay; fullscreen", html)
+        self.assertIn("allowfullscreen", html)
+        self.assertIn("autoplay; fullscreen", html)
         self.assertIn("data-fullscreen-player", html)
 
     @patch.object(app_module, "fetch_tv_player_metadata", return_value={})
@@ -341,7 +341,7 @@ class PlayerRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         html = response.get_data(as_text=True)
         self.assertIn("https://player.vidlove.cc/embed/tv/1396/2/3?", html)
-        self.assertIn("server=Archer+Queen", html)
+        self.assertIn("server=auto", html)
         self.assertIn("hideserver=true", html)
         self.assertIn("autonext=false", html)
         self.assertIn("episodelist=false", html)
@@ -350,8 +350,8 @@ class PlayerRouteTests(unittest.TestCase):
         self.assertIn("https://67movies.net/watch/tv/1396/2/3", html)
         self.assertIn("data-provider-frame", html)
         self.assertNotIn("sandbox=", html)
-        self.assertNotIn("allowfullscreen", html)
-        self.assertNotIn("autoplay; fullscreen", html)
+        self.assertIn("allowfullscreen", html)
+        self.assertIn("autoplay; fullscreen", html)
         self.assertIn("data-fullscreen-player", html)
 
     @patch.object(app_module, "fetch_tv_player_metadata")
@@ -497,7 +497,7 @@ class PlayerRouteTests(unittest.TestCase):
         provider_options = {
             "primarycolor": ["ff4d6d"],
             "secondarycolor": ["c49de8"],
-            "server": ["Archer Queen"],
+            "server": ["auto"],
             "hideserver": ["true"],
             "autoplay": ["true"],
             "autonext": ["false"],
@@ -558,7 +558,10 @@ class PlayerRouteTests(unittest.TestCase):
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
         self.assertEqual(response.headers["X-Frame-Options"], "DENY")
         self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
-        self.assertIn("fullscreen=(self)", response.headers["Permissions-Policy"])
+        self.assertIn(
+            'fullscreen=(self "https://player.vidlove.cc")',
+            response.headers["Permissions-Policy"],
+        )
         self.assertEqual(response.headers["Cross-Origin-Opener-Policy"], "same-origin")
         self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
         self.assertIn("object-src 'none'", response.headers["Content-Security-Policy"])
